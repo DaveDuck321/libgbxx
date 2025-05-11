@@ -1,0 +1,656 @@
+[
+    {
+        "type": "enum",
+        "name": "JoypadButton",
+        "width": 8,
+        "values": [
+            {
+                "name": "pressed",
+                "value": 0
+            },
+            {
+                "name": "unpressed",
+                "value": 1
+            }
+        ]
+    },
+    {
+        "type": "enum",
+        "name": "JoypadInputSelect",
+        "width": 8,
+        "values": [
+            {
+                "name": "dpad",
+                "value": 1
+            },
+            {
+                "name": "buttons",
+                "value": 2
+            }
+        ]
+    },
+    {
+        "type": "register",
+        "address": "0xff00",
+        "name": "joypad",
+        "layout": [
+            {
+                "name": "right_or_a",
+                "width": 1,
+                "type": "volatile_read_only",
+                "enum": "JoypadButton"
+            },
+            {
+                "name": "left_or_b",
+                "width": 1,
+                "type": "volatile_read_only",
+                "enum": "JoypadButton"
+            },
+            {
+                "name": "up_or_select",
+                "width": 1,
+                "type": "volatile_read_only",
+                "enum": "JoypadButton"
+            },
+            {
+                "name": "down_or_start",
+                "width": 1,
+                "type": "volatile_read_only",
+                "enum": "JoypadButton"
+            },
+            {
+                "name": "select",
+                "width": 2,
+                "type": "non_volatile_read_write",
+                "enum": "JoypadInputSelect"
+            },
+            {
+                "width": 2,
+                "type": "padding"
+            }
+        ]
+    },
+    {
+        "type": "register",
+        "address": "0xff01",
+        "name": "seral_transfer_data",
+        "layout": [
+            {
+                "name": "data",
+                "width": 8,
+                "type": "volatile_read_write"
+            }
+        ]
+    },
+    {
+        "type": "enum",
+        "name": "SerialTransferClockSpeed",
+        "width": 8,
+        "values": [
+            {
+                "name": "normal",
+                "value": 0
+            },
+            {
+                "name": "cgb_fast",
+                "value": 1
+            }
+        ]
+    },
+    {
+        "type": "enum",
+        "name": "SerialTransferClockSelect",
+        "width": 8,
+        "values": [
+            {
+                "name": "external_clock",
+                "value": 0
+            },
+            {
+                "name": "internal_clock",
+                "value": 1
+            }
+        ]
+    },
+    {
+        "type": "register",
+        "address": "0xff02",
+        "name": "seral_transfer_control",
+        "layout": [
+            {
+                "name": "clock_select",
+                "width": 1,
+                "type": "non_volatile_read_write",
+                "enum": "SerialTransferClockSelect"
+            },
+            {
+                "name": "clock_speed",
+                "width": 1,
+                "type": "non_volatile_read_write",
+                "enum": "SerialTransferClockSpeed"
+            },
+            {
+                "width": 5,
+                "type": "padding"
+            },
+            {
+                "name": "enable",
+                "width": 1,
+                "type": "volatile_read_write"
+            }
+        ]
+    },
+    {
+        "type": "register",
+        "address": "0xff04",
+        "name": "divider_register",
+        "comment": "Increments at ~16KHz Resets to 0 on write",
+        "layout": [
+            {
+                "name": "value",
+                "width": 8,
+                "type": "volatile_read_write"
+            }
+        ]
+    },
+    {
+        "type": "register",
+        "address": "0xff05",
+        "name": "timer_counter",
+        "layout": [
+            {
+                "name": "value",
+                "width": 8,
+                "type": "volatile_read_only"
+            }
+        ]
+    },
+    {
+        "type": "register",
+        "address": "0xff06",
+        "name": "timer_modulo",
+        "layout": [
+            {
+                "name": "value",
+                "width": 8,
+                "type": "non_volatile_read_write"
+            }
+        ]
+    },
+    {
+        "type": "enum",
+        "name": "TimerControlClockSelect",
+        "width": 8,
+        "values": [
+            {
+                "name": "speed_256M",
+                "value": 0
+            },
+            {
+                "name": "speed_4M",
+                "value": 1
+            },
+            {
+                "name": "speed_16M",
+                "value": 2
+            },
+            {
+                "name": "speed_64M",
+                "value": 3
+            }
+        ]
+    },
+    {
+        "type": "register",
+        "address": "0xff07",
+        "name": "timer_control",
+        "layout": [
+            {
+                "name": "clock_select",
+                "width": 2,
+                "type": "non_volatile_read_write",
+                "enum": "TimerControlClockSelect"
+            },
+            {
+                "name": "enable",
+                "width": 1,
+                "type": "non_volatile_read_write"
+            },
+            {
+                "width": 5,
+                "type": "padding"
+            }
+        ]
+    },
+    {
+        "type": "register",
+        "address": "0xff0f",
+        "name": "interrupt_flag",
+        "layout": [
+            {
+                "name": "vblank",
+                "width": 1,
+                "type": "volatile_read_write"
+            },
+            {
+                "name": "lcd",
+                "width": 1,
+                "type": "volatile_read_write"
+            },
+            {
+                "name": "timer",
+                "width": 1,
+                "type": "volatile_read_write"
+            },
+            {
+                "name": "serial",
+                "width": 1,
+                "type": "volatile_read_write"
+            },
+            {
+                "name": "joypad",
+                "width": 1,
+                "type": "volatile_read_write"
+            },
+            {
+                "width": 3,
+                "type": "padding"
+            }
+        ]
+    },
+    {
+        "type": "register",
+        "address": "0xffff",
+        "name": "interrupt_enable",
+        "layout": [
+            {
+                "name": "vblank",
+                "width": 1,
+                "type": "write_only"
+            },
+            {
+                "name": "lcd",
+                "width": 1,
+                "type": "write_only"
+            },
+            {
+                "name": "timer",
+                "width": 1,
+                "type": "write_only"
+            },
+            {
+                "name": "serial",
+                "width": 1,
+                "type": "write_only"
+            },
+            {
+                "name": "joypad",
+                "width": 1,
+                "type": "write_only"
+            },
+            {
+                "width": 3,
+                "type": "padding"
+            }
+        ]
+    },
+    {
+        "type": "enum",
+        "name": "ObjectSizeMode",
+        "width": 8,
+        "values": [
+            {
+                "name": "square",
+                "value": 0,
+                "comment": "8x8"
+            },
+            {
+                "name": "tall",
+                "value": 1,
+                "comment": "16x16"
+            }
+        ]
+    },
+    {
+        "type": "enum",
+        "name": "TileDataAddressingMode",
+        "width": 8,
+        "values": [
+            {
+                "name": "mode_0",
+                "value": 0,
+                "comment": "Tile data base address of 0x8000, unsigned indexing."
+            },
+            {
+                "name": "mode_1",
+                "value": 1,
+                "comment": "Tile data base address of 0x8800, signed indexing."
+            }
+        ]
+    },
+    {
+        "type": "enum",
+        "name": "TileMapAddressingMode",
+        "width": 8,
+        "values": [
+            {
+                "name": "map_0",
+                "value": 0,
+                "comment": "Tile map used from 0x9800-0x9BFF"
+            },
+            {
+                "name": "map_1",
+                "value": 1,
+                "comment": "Tile map used from 0x9C00-0x9FFF"
+            }
+        ]
+    },
+    {
+        "type": "register",
+        "address": "0xff40",
+        "name": "lcd_control",
+        "layout": [
+            {
+                "name": "bg_window_enable",
+                "width": 1,
+                "type": "write_only"
+            },
+            {
+                "name": "object_enable",
+                "width": 1,
+                "type": "write_only"
+            },
+            {
+                "name": "object_size",
+                "width": 1,
+                "type": "write_only",
+                "enum": "ObjectSizeMode"
+            },
+            {
+                "name": "bg_tile_map",
+                "width": 1,
+                "type": "write_only",
+                "enum": "TileMapAddressingMode"
+            },
+            {
+                "name": "tile_data_addressing_mode",
+                "width": 1,
+                "type": "write_only",
+                "enum": "TileDataAddressingMode"
+            },
+            {
+                "name": "window_enable",
+                "width": 1,
+                "type": "write_only"
+            },
+            {
+                "name": "window_tile_map",
+                "width": 1,
+                "type": "write_only",
+                "enum": "TileMapAddressingMode"
+            },
+            {
+                "name": "lcd_enable",
+                "width": 1,
+                "type": "write_only"
+            }
+        ]
+    },
+    {
+        "type": "register",
+        "address": "0xff44",
+        "name": "lcd_y_coord",
+        "comment": "[0, 153], values in [144, 153] indicate the VBlank period",
+        "layout": [
+            {
+                "name": "value",
+                "width": 8,
+                "type": "volatile_read_only"
+            }
+        ]
+    },
+    {
+        "type": "register",
+        "address": "0xff45",
+        "name": "lcd_y_compare",
+        "layout": [
+            {
+                "name": "value",
+                "width": 8,
+                "type": "non_volatile_read_write"
+            }
+        ]
+    },
+    {
+        "type": "enum",
+        "name": "PPUMode",
+        "width": 8,
+        "comment": "https://gbdev.io/pandocs/Rendering.html#ppu-modes",
+        "values": [
+            {
+                "name": "h_blank",
+                "value": 0
+            },
+            {
+                "name": "v_blank",
+                "value": 1
+            },
+            {
+                "name": "oam_scan",
+                "value": 2,
+                "comment": "OAM inaccessible"
+            },
+            {
+                "name": "drawing",
+                "value": 3,
+                "comment": "OAM + VRAM + CGB palettes inaccessible"
+            }
+        ]
+    },
+    {
+        "type": "register",
+        "address": "0xff41",
+        "name": "lcd_status",
+        "layout": [
+            {
+                "name": "ppu_mode",
+                "width": 2,
+                "type": "volatile_read_only",
+                "enum": "PPUMode"
+            },
+            {
+                "name": "lcd_y_compare_success",
+                "width": 1,
+                "type": "volatile_read_only",
+                "comment": "Updated continuously"
+            },
+            {
+                "name": "stat_interrupt_on_h_blank",
+                "width": 1,
+                "type": "non_volatile_read_write"
+            },
+            {
+                "name": "stat_interrupt_on_v_blank",
+                "width": 1,
+                "type": "non_volatile_read_write"
+            },
+            {
+                "name": "stat_interrupt_on_oam_scan",
+                "width": 1,
+                "type": "non_volatile_read_write"
+            },
+            {
+                "name": "stat_interrupt_on_lcd_y_compare",
+                "width": 1,
+                "type": "non_volatile_read_write"
+            },
+            {
+                "type": "padding",
+                "width": 1
+            }
+        ]
+    },
+    {
+        "type": "register",
+        "address": "0xff42",
+        "name": "background_viewport_x",
+        "layout": [
+            {
+                "name": "value",
+                "width": 8,
+                "type": "non_volatile_read_write"
+            }
+        ]
+    },
+    {
+        "type": "register",
+        "address": "0xff43",
+        "name": "background_viewport_y",
+        "layout": [
+            {
+                "name": "value",
+                "width": 8,
+                "type": "non_volatile_read_write"
+            }
+        ]
+    },
+    {
+        "type": "register",
+        "address": "0xff4a",
+        "name": "window_position_x_plus_7",
+        "layout": [
+            {
+                "name": "value",
+                "width": 8,
+                "type": "non_volatile_read_write"
+            }
+        ]
+    },
+    {
+        "type": "register",
+        "address": "0xff4b",
+        "name": "window_position_y",
+        "layout": [
+            {
+                "name": "value",
+                "width": 8,
+                "type": "non_volatile_read_write"
+            }
+        ]
+    },
+    {
+        "type": "enum",
+        "name": "PaletteColor",
+        "width": 8,
+        "values": [
+            {
+                "name": "white",
+                "value": 0
+            },
+            {
+                "name": "light",
+                "value": 1
+            },
+            {
+                "name": "dark",
+                "value": 2
+            },
+            {
+                "name": "black",
+                "value": 3
+            }
+        ]
+    },
+    {
+        "type": "register",
+        "address": "0xff47",
+        "name": "bg_palette_data",
+        "comment": "Non-CGB mode only",
+        "layout": [
+            {
+                "name": "id_0",
+                "width": 2,
+                "type": "non_volatile_read_write",
+                "enum": "PaletteColor"
+            },
+            {
+                "name": "id_1",
+                "width": 2,
+                "type": "non_volatile_read_write",
+                "enum": "PaletteColor"
+            },
+            {
+                "name": "id_2",
+                "width": 2,
+                "type": "non_volatile_read_write",
+                "enum": "PaletteColor"
+            },
+            {
+                "name": "id_3",
+                "width": 2,
+                "type": "non_volatile_read_write",
+                "enum": "PaletteColor"
+            }
+        ]
+    },
+    {
+        "type": "register",
+        "address": "0xff48",
+        "name": "obj_0_palette_data",
+        "comment": "Non-CGB mode only",
+        "layout": [
+            {
+                "type": "padding",
+                "width": 2
+            },
+            {
+                "name": "id_1",
+                "width": 2,
+                "type": "non_volatile_read_write",
+                "enum": "PaletteColor"
+            },
+            {
+                "name": "id_2",
+                "width": 2,
+                "type": "non_volatile_read_write",
+                "enum": "PaletteColor"
+            },
+            {
+                "name": "id_3",
+                "width": 2,
+                "type": "non_volatile_read_write",
+                "enum": "PaletteColor"
+            }
+        ]
+    },
+    {
+        "type": "register",
+        "address": "0xff49",
+        "name": "obj_1_palette_data",
+        "comment": "Non-CGB mode only",
+        "layout": [
+            {
+                "type": "padding",
+                "width": 2
+            },
+            {
+                "name": "id_1",
+                "width": 2,
+                "type": "non_volatile_read_write",
+                "enum": "PaletteColor"
+            },
+            {
+                "name": "id_2",
+                "width": 2,
+                "type": "non_volatile_read_write",
+                "enum": "PaletteColor"
+            },
+            {
+                "name": "id_3",
+                "width": 2,
+                "type": "non_volatile_read_write",
+                "enum": "PaletteColor"
+            }
+        ]
+    }
+]
