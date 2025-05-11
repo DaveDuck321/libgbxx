@@ -1,3 +1,3 @@
 #pragma once
 
-#include "generated/enums.hpp"
+#include "generated/enums.hpp" // IWYU pragma: keep
