@@ -22,6 +22,8 @@ extern volatile InterruptCallback lcd_status_interrupt_callback;
 extern volatile InterruptCallback timer_interrupt_callback;
 extern volatile InterruptCallback serial_interrupt_callback;
 extern volatile InterruptCallback input_interrupt_callback;
+
+auto default_interrupt_callback() -> void;
 } // namespace impl
 
 inline auto enable_interrupts() -> void { asm volatile("ei" ::: "memory"); }
@@ -53,6 +55,31 @@ inline auto enable_joypad_interrupt(InterruptCallback callback) -> void {
   arch::registers::set_interrupt_enable_joypad(true);
 }
 
+inline auto disable_vblank_interrupt() -> void {
+  arch::registers::set_interrupt_enable_vblank(false);
+  impl::vblank_interrupt_callback = impl::default_interrupt_callback;
+}
+
+inline auto disable_lcd_status_interrupt() -> void {
+  arch::registers::set_interrupt_enable_lcd(false);
+  impl::lcd_status_interrupt_callback = impl::default_interrupt_callback;
+}
+
+inline auto disable_timer_interrupt() -> void {
+  arch::registers::set_interrupt_enable_timer(false);
+  impl::timer_interrupt_callback = impl::default_interrupt_callback;
+}
+
+inline auto disable_serial_interrupt() -> void {
+  arch::registers::set_interrupt_enable_serial(false);
+  impl::serial_interrupt_callback = impl::default_interrupt_callback;
+}
+
+inline auto disable_joypad_interrupt() -> void {
+  arch::registers::set_interrupt_enable_joypad(false);
+  impl::input_interrupt_callback = impl::default_interrupt_callback;
+}
+
 template <Interrupt_t interrupt>
 inline auto enable_interrupt(Constant<interrupt>, InterruptCallback callback)
     -> void {
@@ -75,6 +102,27 @@ inline auto enable_interrupt(Constant<interrupt>, InterruptCallback callback)
   }
 }
 
+template <Interrupt_t interrupt>
+inline auto disable_interrupt(Constant<interrupt>) -> void {
+  switch (interrupt) {
+  case Interrupt::vblank:
+    disable_vblank_interrupt();
+    break;
+  case Interrupt::lcd:
+    disable_lcd_status_interrupt();
+    break;
+  case Interrupt::timer:
+    disable_timer_interrupt();
+    break;
+  case Interrupt::serial:
+    disable_serial_interrupt();
+    break;
+  case Interrupt::joypad:
+    disable_joypad_interrupt();
+    break;
+  }
+}
+
 template <Interrupt_t interrupt> inline auto wait_for_interrupt() -> void {
   static volatile bool has_seen_interrupt;
 
@@ -84,6 +132,8 @@ template <Interrupt_t interrupt> inline auto wait_for_interrupt() -> void {
   while (not has_seen_interrupt) {
     halt();
   }
+
+  disable_interrupt(Constant<interrupt>{});
 }
 
 } // namespace libgb

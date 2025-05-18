@@ -30,4 +30,6 @@ namespace libgb::impl {
 [[gnu::alias(
     "__libgb_handle_input_interrupt")]] extern volatile InterruptCallback
     input_interrupt_callback;
+
+auto default_interrupt_callback() -> void { asm volatile("stop"); }
 } // namespace libgb::impl
