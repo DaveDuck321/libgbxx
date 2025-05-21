@@ -28,6 +28,30 @@ template <typename T, size_t Size> struct Array {
   }
 };
 
+template <typename T> struct Array<T, 0> {
+  template <typename Self>
+  [[nodiscard]] constexpr auto operator[](this Self &&, size_t)
+      -> decltype(auto) {
+    __builtin_unreachable();
+  }
+
+  template <typename Self> constexpr auto data(this Self &&) {
+    return nullptr;
+  };
+
+  static constexpr auto size() -> size_t { return 0; };
+
+  // Iterator types are kinda cheaty here, it probably doesn't matter since
+  // we're not allowed to deference it.
+  template <typename Self> constexpr auto begin(this Self &&) -> T * {
+    return nullptr;
+  }
+
+  template <typename Self> constexpr auto end(this Self &&) -> T * {
+    return nullptr;
+  }
+};
+
 // Deduction guide
 template <typename T, is_same<T>... Ts>
 Array(T, Ts...) -> Array<T, sizeof...(Ts) + 1>;
@@ -74,5 +98,16 @@ INLINE_TEST([] {
   CHECK(test_array[0] == 6);
   CHECK(test_array[1] == 7);
   CHECK(test_array[2] == 8);
+  PASS();
+})
+
+INLINE_TEST([] {
+  libgb::Array<int, 0> zero_sized_array = {};
+  for (auto _ : zero_sized_array) {
+    FAIL("Zero length array has item!");
+  }
+
+  CHECK(zero_sized_array.size() == 0);
+  CHECK(zero_sized_array.data() == nullptr);
   PASS();
 })

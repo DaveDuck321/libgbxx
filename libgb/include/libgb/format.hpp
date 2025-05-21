@@ -29,7 +29,7 @@ template <size_t N, size_t AllocatedSpecifiers> struct FormatString {
 
   // c-str constructor N == strlen(cstr)
   consteval FormatString(char const c_str[N]) {
-    for (size_t input_index = 0; input_index < N;) {
+    for (size_t input_index = 0; input_index < N - 1;) {
       if (c_str[input_index] == '{') {
         // The parser will advance input_index past the specifier
         auto specifier = parse_format_specifier(c_str, input_index);
@@ -58,8 +58,10 @@ consteval auto shrink_wrap_format_string()
     new_fmt.m_data[i] = fmt.m_data[i];
   }
 
-  for (size_t i = 0; i < new_format_args; i += 1) {
-    new_fmt.m_format_types[i] = fmt.m_format_types[i];
+  if constexpr (new_format_args != 0) {
+    for (size_t i = 0; i < new_format_args; i += 1) {
+      new_fmt.m_format_types[i] = fmt.m_format_types[i];
+    }
   }
   return new_fmt;
 }
