@@ -1,20 +1,12 @@
 #pragma once
 
 #include <libgb/arch/registers.hpp>
-#include <libgb/std/constant.hpp>
 
 #include <stdint.h>
 
 namespace libgb {
 using InterruptCallback = void (*)(void);
-enum class Interrupt_t : int8_t { vblank, lcd, timer, serial, joypad };
-struct Interrupt {
-  static constexpr auto vblank = Constant<Interrupt_t::vblank>{};
-  static constexpr auto lcd = Constant<Interrupt_t::lcd>{};
-  static constexpr auto timer = Constant<Interrupt_t::timer>{};
-  static constexpr auto serial = Constant<Interrupt_t::serial>{};
-  static constexpr auto joypad = Constant<Interrupt_t::joypad>{};
-};
+enum class Interrupt : int8_t { vblank, lcd, timer, serial, joypad };
 
 namespace impl {
 extern volatile InterruptCallback vblank_interrupt_callback;
@@ -80,9 +72,8 @@ inline auto disable_joypad_interrupt() -> void {
   impl::input_interrupt_callback = impl::default_interrupt_callback;
 }
 
-template <Interrupt_t interrupt>
-inline auto enable_interrupt(Constant<interrupt>, InterruptCallback callback)
-    -> void {
+template <Interrupt interrupt>
+inline auto enable_interrupt(InterruptCallback callback) -> void {
   switch (interrupt) {
   case Interrupt::vblank:
     enable_vblank_interrupt(callback);
@@ -102,8 +93,7 @@ inline auto enable_interrupt(Constant<interrupt>, InterruptCallback callback)
   }
 }
 
-template <Interrupt_t interrupt>
-inline auto disable_interrupt(Constant<interrupt>) -> void {
+template <Interrupt interrupt> inline auto disable_interrupt() -> void {
   switch (interrupt) {
   case Interrupt::vblank:
     disable_vblank_interrupt();
@@ -123,17 +113,22 @@ inline auto disable_interrupt(Constant<interrupt>) -> void {
   }
 }
 
-template <Interrupt_t interrupt> inline auto wait_for_interrupt() -> void {
+template <Interrupt interrupt> struct InterruptScope {
+  explicit InterruptScope(InterruptCallback callback) {
+    enable_interrupt<interrupt>(callback);
+  }
+  InterruptScope(InterruptScope const &) = delete;
+  auto operator=(InterruptScope const &) -> InterruptScope & = delete;
+  ~InterruptScope() { disable_interrupt<interrupt>(); }
+};
+
+template <Interrupt interrupt> inline auto wait_for_interrupt() -> void {
   static volatile bool has_seen_interrupt;
-
   has_seen_interrupt = false;
-  enable_interrupt(Constant<interrupt>{}, [] { has_seen_interrupt = true; });
 
+  InterruptScope<interrupt> handler([] { has_seen_interrupt = true; });
   while (not has_seen_interrupt) {
     halt();
   }
-
-  disable_interrupt(Constant<interrupt>{});
 }
-
 } // namespace libgb
