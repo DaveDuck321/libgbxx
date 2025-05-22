@@ -21,5 +21,8 @@ int main() {
   libgb::println<"hello {}">("world");
   // CHECK: hello world
 
+  libgb::println<"test {{}{{{}}">(1);
+  // CHECK: test {}{$0001}
+
   return 0;
 }
