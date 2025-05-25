@@ -319,12 +319,12 @@
             {
                 "name": "mode_0",
                 "value": 0,
-                "comment": "Tile data base address of 0x8000, unsigned indexing."
+                "comment": "Tile data base address of 0x9000, signed indexing."
             },
             {
                 "name": "mode_1",
                 "value": 1,
-                "comment": "Tile data base address of 0x8800, signed indexing."
+                "comment": "Tile data base address of 0x8000, unsigned indexing."
             }
         ]
     },
@@ -493,7 +493,7 @@
     {
         "type": "register",
         "address": "0xff42",
-        "name": "background_viewport_x",
+        "name": "background_viewport_y",
         "layout": [
             {
                 "name": "value",
@@ -505,7 +505,7 @@
     {
         "type": "register",
         "address": "0xff43",
-        "name": "background_viewport_y",
+        "name": "background_viewport_x",
         "layout": [
             {
                 "name": "value",
