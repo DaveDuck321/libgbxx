@@ -317,12 +317,12 @@
         "width": 8,
         "values": [
             {
-                "name": "mode_0",
+                "name": "signed_indexing",
                 "value": 0,
                 "comment": "Tile data base address of 0x9000, signed indexing."
             },
             {
-                "name": "mode_1",
+                "name": "unsigned_indexing",
                 "value": 1,
                 "comment": "Tile data base address of 0x8000, unsigned indexing."
             }

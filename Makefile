@@ -36,7 +36,9 @@ GAME_OBJECTS = \
 GAME_DEPS = $(GAME_OBJECTS:.o=.d)
 
 TEST_OBJECTS = \
-	$(TEST_BUILD_DIR)/print.o
+	$(TEST_BUILD_DIR)/print.o \
+	$(TEST_BUILD_DIR)/vram_guard.o \
+
 TEST_ROMS = $(TEST_OBJECTS:.o=.gb)
 TEST_ELFS = $(TEST_OBJECTS:.o=.out)
 TEST_DEPS = $(TEST_OBJECTS:.o=.d)

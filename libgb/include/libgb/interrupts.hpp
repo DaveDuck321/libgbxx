@@ -6,7 +6,13 @@
 
 namespace libgb {
 using InterruptCallback = void (*)(void);
-enum class Interrupt : int8_t { vblank, lcd, timer, serial, joypad };
+enum class Interrupt : uint8_t { vblank, lcd, timer, serial, joypad };
+enum class LCDInterruptCondition : uint8_t {
+  h_blank,
+  v_blank,
+  oam_scan,
+  compare
+};
 
 namespace impl {
 extern volatile InterruptCallback vblank_interrupt_callback;
@@ -49,27 +55,39 @@ inline auto enable_joypad_interrupt(InterruptCallback callback) -> void {
 
 inline auto disable_vblank_interrupt() -> void {
   arch::registers::set_interrupt_enable_vblank(false);
-  impl::vblank_interrupt_callback = impl::default_interrupt_callback;
 }
 
 inline auto disable_lcd_status_interrupt() -> void {
   arch::registers::set_interrupt_enable_lcd(false);
-  impl::lcd_status_interrupt_callback = impl::default_interrupt_callback;
 }
 
 inline auto disable_timer_interrupt() -> void {
   arch::registers::set_interrupt_enable_timer(false);
-  impl::timer_interrupt_callback = impl::default_interrupt_callback;
 }
 
 inline auto disable_serial_interrupt() -> void {
   arch::registers::set_interrupt_enable_serial(false);
-  impl::serial_interrupt_callback = impl::default_interrupt_callback;
 }
 
 inline auto disable_joypad_interrupt() -> void {
   arch::registers::set_interrupt_enable_joypad(false);
-  impl::input_interrupt_callback = impl::default_interrupt_callback;
+}
+
+inline auto set_lcd_interrupt_condition(LCDInterruptCondition condition)
+    -> void {
+  arch::registers::set_lcd_status(libgb::arch::registers::LcdStatus{
+      .ppu_mode = libgb::arch::registers::PPUMode::v_blank,
+      .lcd_y_compare_success = false,
+      .stat_interrupt_on_h_blank =
+          (condition == LCDInterruptCondition::h_blank),
+      .stat_interrupt_on_v_blank =
+          (condition == LCDInterruptCondition::v_blank),
+      .stat_interrupt_on_oam_scan =
+          (condition == LCDInterruptCondition::oam_scan),
+      .stat_interrupt_on_lcd_y_compare =
+          (condition == LCDInterruptCondition::compare),
+      .padding_0 = 0,
+  });
 }
 
 template <Interrupt interrupt>
