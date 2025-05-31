@@ -296,7 +296,7 @@
     },
     {
         "type": "enum",
-        "name": "ObjectSizeMode",
+        "name": "SpriteSizeMode",
         "width": 8,
         "values": [
             {
@@ -356,15 +356,15 @@
                 "type": "write_only"
             },
             {
-                "name": "object_enable",
+                "name": "sprites_enable",
                 "width": 1,
                 "type": "write_only"
             },
             {
-                "name": "object_size",
+                "name": "sprite_size",
                 "width": 1,
                 "type": "write_only",
-                "enum": "ObjectSizeMode"
+                "enum": "SpriteSizeMode"
             },
             {
                 "name": "bg_tile_map",

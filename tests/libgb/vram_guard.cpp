@@ -34,7 +34,7 @@ static auto do_large_copy_into_vram() {
   libgb::arch::registers::set_lcd_control_tile_data_addressing_mode(
       libgb::arch::registers::TileDataAddressingMode::unsigned_indexing);
   libgb::arch::registers::set_lcd_control_bg_window_enable(1);
-  libgb::arch::registers::set_lcd_control_object_enable(0);
+  libgb::arch::registers::set_lcd_control_sprites_enable(0);
   libgb::arch::registers::set_lcd_control_window_enable(0);
 
   static constexpr auto white_tile_addr = libgb::arch::tile_address(
