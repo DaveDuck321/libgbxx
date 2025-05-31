@@ -391,7 +391,7 @@ def generate_register_headers(
     lines.append("")
 
     # 2) Begin namespace
-    lines.append("namespace libgb::arch::registers {")
+    lines.append("namespace libgb::arch {")
     lines.append("")
 
     # 3) Enums
@@ -414,7 +414,7 @@ def generate_register_headers(
         seen_addresses.add(register.address)
 
     # 5) End namespace
-    lines.append("} // libgb::arch::registers")
+    lines.append("} // libgb::arch")
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text("\n".join(lines))
 

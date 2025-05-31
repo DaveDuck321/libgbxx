@@ -30,53 +30,53 @@ inline auto halt() -> void { asm volatile("halt"); }
 
 inline auto enable_vblank_interrupt(InterruptCallback callback) -> void {
   impl::vblank_interrupt_callback = callback;
-  arch::registers::set_interrupt_enable_vblank(true);
+  arch::set_interrupt_enable_vblank(true);
 }
 
 inline auto enable_lcd_status_interrupt(InterruptCallback callback) -> void {
   impl::lcd_status_interrupt_callback = callback;
-  arch::registers::set_interrupt_enable_lcd(true);
+  arch::set_interrupt_enable_lcd(true);
 }
 
 inline auto enable_timer_interrupt(InterruptCallback callback) -> void {
   impl::timer_interrupt_callback = callback;
-  arch::registers::set_interrupt_enable_timer(true);
+  arch::set_interrupt_enable_timer(true);
 }
 
 inline auto enable_serial_interrupt(InterruptCallback callback) -> void {
   impl::serial_interrupt_callback = callback;
-  arch::registers::set_interrupt_enable_serial(true);
+  arch::set_interrupt_enable_serial(true);
 }
 
 inline auto enable_joypad_interrupt(InterruptCallback callback) -> void {
   impl::input_interrupt_callback = callback;
-  arch::registers::set_interrupt_enable_joypad(true);
+  arch::set_interrupt_enable_joypad(true);
 }
 
 inline auto disable_vblank_interrupt() -> void {
-  arch::registers::set_interrupt_enable_vblank(false);
+  arch::set_interrupt_enable_vblank(false);
 }
 
 inline auto disable_lcd_status_interrupt() -> void {
-  arch::registers::set_interrupt_enable_lcd(false);
+  arch::set_interrupt_enable_lcd(false);
 }
 
 inline auto disable_timer_interrupt() -> void {
-  arch::registers::set_interrupt_enable_timer(false);
+  arch::set_interrupt_enable_timer(false);
 }
 
 inline auto disable_serial_interrupt() -> void {
-  arch::registers::set_interrupt_enable_serial(false);
+  arch::set_interrupt_enable_serial(false);
 }
 
 inline auto disable_joypad_interrupt() -> void {
-  arch::registers::set_interrupt_enable_joypad(false);
+  arch::set_interrupt_enable_joypad(false);
 }
 
 inline auto set_lcd_interrupt_condition(LCDInterruptCondition condition)
     -> void {
-  arch::registers::set_lcd_status(libgb::arch::registers::LcdStatus{
-      .ppu_mode = libgb::arch::registers::PPUMode::v_blank,
+  arch::set_lcd_status(libgb::arch::LcdStatus{
+      .ppu_mode = libgb::arch::PPUMode::v_blank,
       .lcd_y_compare_success = false,
       .stat_interrupt_on_h_blank =
           (condition == LCDInterruptCondition::h_blank),

@@ -29,41 +29,38 @@ static auto do_large_copy_into_vram() {
   // The emulator will throw an error if there is a contested write into VRAM
   libgb::ScopedVRAMGuard _;
 
-  libgb::arch::registers::set_lcd_control_bg_tile_map(
-      libgb::arch::registers::TileMapAddressingMode::map_0);
-  libgb::arch::registers::set_lcd_control_tile_data_addressing_mode(
-      libgb::arch::registers::TileDataAddressingMode::unsigned_indexing);
-  libgb::arch::registers::set_lcd_control_bg_window_enable(1);
-  libgb::arch::registers::set_lcd_control_sprites_enable(0);
-  libgb::arch::registers::set_lcd_control_window_enable(0);
+  libgb::arch::set_lcd_control_bg_tile_map(
+      libgb::arch::TileMapAddressingMode::map_0);
+  libgb::arch::set_lcd_control_tile_data_addressing_mode(
+      libgb::arch::TileDataAddressingMode::unsigned_indexing);
+  libgb::arch::set_lcd_control_bg_window_enable(1);
+  libgb::arch::set_lcd_control_sprites_enable(0);
+  libgb::arch::set_lcd_control_window_enable(0);
 
-  static constexpr auto white_tile_addr = libgb::arch::tile_address(
-      libgb::arch::TileIndex{0},
-      libgb::arch::TileAddressingMode::bg_window_unsigned);
+  static constexpr auto white_tile_addr = libgb::tile_address(
+      libgb::TileIndex{0}, libgb::TileAddressingMode::bg_window_unsigned);
 
   for (uint8_t tile_index = 1; tile_index != 0; tile_index += 1) {
-    libgb::arch::set_tile(
-        libgb::arch::tile_address(
-            libgb::arch::TileIndex{1},
-            libgb::arch::TileAddressingMode::bg_window_unsigned),
+    libgb::set_tile(
+        libgb::tile_address(libgb::TileIndex{1},
+                            libgb::TileAddressingMode::bg_window_unsigned),
         black_tile);
   }
-  libgb::arch::set_tile(white_tile_addr, white_tile);
+  libgb::set_tile(white_tile_addr, white_tile);
 
-  libgb::arch::registers::set_bg_palette_data(
-      libgb::arch::registers::BgPaletteData{
-          .id_0 = libgb::arch::registers::PaletteColor::black,
-          .id_1 = libgb::arch::registers::PaletteColor::light,
-          .id_2 = libgb::arch::registers::PaletteColor::light,
-          .id_3 = libgb::arch::registers::PaletteColor::white,
-      });
+  libgb::arch::set_bg_palette_data(libgb::arch::BgPaletteData{
+      .id_0 = libgb::arch::PaletteColor::black,
+      .id_1 = libgb::arch::PaletteColor::light,
+      .id_2 = libgb::arch::PaletteColor::light,
+      .id_3 = libgb::arch::PaletteColor::white,
+  });
 
   for (uint8_t x = 0; x < 32; x += 1) {
     for (uint8_t y = 0; y < 32; y += 1) {
       if ((x + y) % 2 == 0) {
-        libgb::arch::tile_maps->maps[0].data[y][x] = libgb::arch::TileIndex{0};
+        libgb::arch::tile_maps->maps[0].data[y][x] = libgb::TileIndex{0};
       } else {
-        libgb::arch::tile_maps->maps[0].data[y][x] = libgb::arch::TileIndex{1};
+        libgb::arch::tile_maps->maps[0].data[y][x] = libgb::TileIndex{1};
       }
     }
   }

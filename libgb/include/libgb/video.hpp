@@ -11,14 +11,14 @@ namespace libgb {
 // rendered.
 struct ScopedVRAMGuard {
   static auto on_oam_callback() -> void {
-    arch::registers::set_interrupt_enable_lcd(false);
+    arch::set_interrupt_enable_lcd(false);
     enable_interrupts();
     wait_for_interrupt<libgb::Interrupt::vblank>();
 
     // We're safe to write into VRAM, fire again when we're out of time
     // The LCD callback already points to us
-    arch::registers::set_interrupt_flag_lcd(false);
-    arch::registers::set_interrupt_enable_lcd(true);
+    arch::set_interrupt_flag_lcd(false);
+    arch::set_interrupt_enable_lcd(true);
   }
 
   ScopedVRAMGuard() {

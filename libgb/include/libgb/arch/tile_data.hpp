@@ -7,9 +7,7 @@
 
 #include <stdint.h>
 
-namespace libgb::arch {
-static constexpr auto tile_map_base = 0x8000;
-
+namespace libgb {
 enum class TileAddress : uint16_t {};
 enum class TileIndex : uint8_t {};
 enum class TileAddressingMode : uint8_t {
@@ -23,9 +21,9 @@ constexpr auto tile_address_offset(TileIndex index, TileAddressingMode mode)
     -> uint16_t {
   switch (mode) {
   case TileAddressingMode::bg_window_unsigned:
-    return sizeof(Tile) * zext(+index);
+    return sizeof(arch::Tile) * zext(+index);
   case TileAddressingMode::bg_window_signed:
-    return sizeof(Tile) * sext(+index);
+    return sizeof(arch::Tile) * sext(+index);
   }
 }
 } // namespace impl
@@ -41,7 +39,8 @@ constexpr auto tile_address(TileIndex index, TileAddressingMode mode)
   }
 }
 
-inline auto set_tile(TileAddress dst, Tile const &src) {
-  libgb::memcpy((uint8_t volatile *)dst, (const uint8_t *)&src, sizeof(Tile));
+inline auto set_tile(TileAddress dst, arch::Tile const &src) {
+  libgb::memcpy((uint8_t volatile *)dst, (const uint8_t *)&src,
+                sizeof(arch::Tile));
 }
-} // namespace libgb::arch
+} // namespace libgb

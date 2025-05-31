@@ -13,5 +13,5 @@ struct TileMaps {
   libgb::Array<TileMap, 2> maps;
 };
 
-inline volatile TileMaps * const tile_maps = (TileMaps *)0x9800;
+inline volatile TileMaps *const tile_maps = (TileMaps *)0x9800;
 } // namespace libgb::arch

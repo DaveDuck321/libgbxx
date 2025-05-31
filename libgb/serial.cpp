@@ -1,7 +1,7 @@
 #include <libgb/interrupts.hpp>
 #include <libgb/serial.hpp>
 
-using namespace libgb::arch::registers;
+using namespace libgb::arch;
 
 auto libgb::serial_write_char(char data) -> void {
   set_seral_transfer_data(data);
