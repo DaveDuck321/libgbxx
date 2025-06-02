@@ -6,6 +6,7 @@
 extern "C" {
 // c-style signature to catch any calls made by the compiler
 auto memcpy(void *dst, void const *src, size_t count) -> void;
+auto memset(void *dst, int byte, size_t count) -> void;
 }
 
 namespace libgb {
@@ -16,6 +17,6 @@ constexpr auto bit_cast(From const &from) -> To {
 
 inline auto memcpy(uint8_t volatile *dst, uint8_t const *src, size_t count)
     -> void {
-  ::memcpy((void *)dst, src, count);
+  __builtin_memcpy((void *)dst, src, count);
 }
 } // namespace libgb
