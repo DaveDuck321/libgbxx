@@ -55,6 +55,8 @@ consteval auto slice(Collection const &collection)
 }
 } // namespace libgb
 
+#include "inline_testing.hpp"
+
 INLINE_TEST([] {
   libgb::Array test_array_0 = {1, 2, 3};
   libgb::Array test_array_1 = {2, 1, 3};

@@ -4,6 +4,8 @@
 #include <libgb/std/pair.hpp>
 #include <libgb/std/traits.hpp>
 
+#include <stdint.h>
+
 namespace libgb {
 
 template <typename SizeType, is_iterable Iterable> struct Enumerator {
@@ -66,7 +68,7 @@ constexpr auto enumerate(Other &other) -> Enumerator<SizeType, Other> {
 
 INLINE_TEST([] {
   libgb::Array<int, 3> array = {5, 6, 7};
-  for (auto [index, value] : enumerate(array)) {
+  for (auto [index, value] : enumerate<int>(array)) {
     CHECK(index + 5 == value);
   }
   PASS();
@@ -74,7 +76,7 @@ INLINE_TEST([] {
 
 INLINE_TEST([] {
   libgb::Array<int, 3> const array = {5, 6, 7};
-  for (auto [index, value] : enumerate(array)) {
+  for (auto [index, value] : enumerate<int>(array)) {
     CHECK(index + 5 == value);
   }
   PASS();
@@ -82,9 +84,9 @@ INLINE_TEST([] {
 
 INLINE_TEST([] {
   libgb::Array<int, 3> array = {5, 6, 7};
-  auto enumerator = libgb::enumerate(array);
+  auto enumerator = enumerate<int>(array);
 
-  for (auto [index, nested_data] : enumerate(enumerator)) {
+  for (auto [index, nested_data] : enumerate<int>(enumerator)) {
     auto [index_2, value] = nested_data;
     CHECK(index + 5 == value);
     CHECK(index == index_2);
