@@ -1,6 +1,7 @@
 #pragma once
 
 #include <libgb/serial.hpp>
+#include <libgb/std/algorithms.hpp>
 
 namespace libgb {
 namespace impl {
@@ -54,15 +55,8 @@ consteval auto shrink_wrap_format_string()
   constexpr auto new_format_args = fmt.m_args;
 
   FormatString<new_size, new_format_args> new_fmt;
-  for (size_t i = 0; i < new_size; i += 1) {
-    new_fmt.m_data[i] = fmt.m_data[i];
-  }
-
-  if constexpr (new_format_args != 0) {
-    for (size_t i = 0; i < new_format_args; i += 1) {
-      new_fmt.m_format_types[i] = fmt.m_format_types[i];
-    }
-  }
+  new_fmt.m_data = slice<0, new_size>(fmt.m_data);
+  new_fmt.m_format_types = slice<0, new_format_args>(fmt.m_format_types);
   return new_fmt;
 }
 

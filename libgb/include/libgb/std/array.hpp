@@ -2,7 +2,7 @@
 
 #include <stddef.h>
 
-#include "traits.hpp"
+#include <libgb/std/traits.hpp>
 
 namespace libgb {
 template <typename T, size_t Size> struct Array {
@@ -12,6 +12,16 @@ template <typename T, size_t Size> struct Array {
   [[nodiscard]] constexpr auto operator[](this Self &&self, size_t index)
       -> decltype(auto) {
     return self.m_data[index];
+  }
+
+  template <typename Self>
+  constexpr auto operator==(this Self const &self, Array const &other) {
+    for (size_t i = 0; i < Size; i += 1) {
+      if (self.m_data[i] != other.m_data[i]) {
+        return false;
+      }
+    }
+    return true;
   }
 
   template <typename Self> constexpr auto data(this Self &&self) {
@@ -30,9 +40,13 @@ template <typename T, size_t Size> struct Array {
 
 template <typename T> struct Array<T, 0> {
   template <typename Self>
-  [[nodiscard]] constexpr auto operator[](this Self &&, size_t)
-      -> decltype(auto) {
+  [[nodiscard]] constexpr auto operator[](this Self &&, size_t) -> T & {
     __builtin_unreachable();
+  }
+
+  template <typename Self>
+  constexpr auto operator==(this Self const &, Array const &) {
+    return true;
   }
 
   template <typename Self> constexpr auto data(this Self &&) {
@@ -51,6 +65,9 @@ template <typename T> struct Array<T, 0> {
     return nullptr;
   }
 };
+
+static_assert(is_collection<Array<int, 2>>);
+static_assert(is_collection<Array<int, 0>>);
 
 // Deduction guide
 template <typename T, is_same<T>... Ts>
@@ -98,6 +115,23 @@ INLINE_TEST([] {
   CHECK(test_array[0] == 6);
   CHECK(test_array[1] == 7);
   CHECK(test_array[2] == 8);
+
+  PASS();
+})
+
+INLINE_TEST([] {
+  // Test operator==
+  libgb::Array test_array = {6, 7, 8};
+  libgb::Array test_array_2 = {6, 7, 8};
+  libgb::Array test_array_3 = test_array;
+
+  CHECK(test_array == test_array);
+  CHECK(test_array == test_array_2);
+  CHECK(test_array == test_array_3);
+
+  test_array_3[0] = 1;
+  CHECK(test_array != test_array_3);
+
   PASS();
 })
 
