@@ -1,6 +1,7 @@
 #pragma once
 
 namespace libgb {
+
 constexpr auto assert(bool condition) -> void {
   if (not condition) {
     if consteval {
@@ -10,4 +11,10 @@ constexpr auto assert(bool condition) -> void {
     }
   }
 }
+
+template <typename T> constexpr auto assert_unreachable() -> T {
+  assert(false);
+  return T{};
+}
+
 } // namespace libgb

@@ -9,8 +9,12 @@ struct Tile {
   libgb::Array<uint8_t, 16> data;
 
   template <typename Self>
-  auto operator=(this Self &&self, auto const &other) -> Self & {
+  auto operator=(this Self &&self, Tile const &other) -> Self & {
     self.data = other.data;
+  }
+
+  consteval auto operator==(Tile const &other) const -> bool {
+    return data == other.data;
   }
 };
 static_assert(8 * sizeof(Tile) == 2 * 8 * 8, "8x8 pixels of 2-bit depth");

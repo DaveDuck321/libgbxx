@@ -28,7 +28,7 @@ template <typename T, size_t Capacity> struct FixedVector {
     return self.m_data.begin();
   }
   template <typename Self> constexpr auto end(this Self &&self) {
-    return self.m_data.end();
+    return self.m_data.begin() + self.m_size;
   }
 };
 
@@ -47,6 +47,13 @@ INLINE_TEST([] {
   CHECK(vec[0] == 2);
   CHECK(vec[1] == 3);
   CHECK(vec[2] == 4);
+
+  int count = 0;
+  for (auto thing : vec) {
+    CHECK(thing == 2 + count);
+    count += 1;
+  }
+  CHECK(count == 3);
   PASS();
 });
 
