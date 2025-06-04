@@ -1,4 +1,4 @@
-// RUN: $GAMEBOY_EMULATOR_PATH/emulate.out $GBLIB_BUILD_DIR/print.out \
+// RUN: $GAMEBOY_EMULATOR_PATH/emulate.out $GBLIB_BUILD_DIR/vram_guard.out \
 // RUN:   | FileCheck %s -check-prefix=CHECK
 #include <libgb/arch/enums.hpp>
 #include <libgb/arch/registers.hpp>
