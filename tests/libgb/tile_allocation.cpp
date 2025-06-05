@@ -73,39 +73,39 @@ static auto setup_vram() -> void {
   libgb::setup_tiles_for_scene<all_scenes, 0>();
   // TODO: the compiler should combine these memcpys
   // memcpy to sprite tile data
-  // CHECK: ld hl, $8020
-  // CHECK: ld bc, $4020
+  // CHECK: ld hl, $8000
+  // CHECK: ld bc, $4000
   // CHECK: ld de, $0010
   // CHECK: call
 
   // memcpy to bg tile data
   // CHECK: ld hl, $9000
-  // CHECK: ld bc, $4000
+  // CHECK: ld bc, $4040
   // CHECK: ld de, $0010
   // CHECK: call
   // CHECK: ld hl, $9010
-  // CHECK: ld bc, $4010
+  // CHECK: ld bc, $4050
   // CHECK: ld de, $0010
   // CHECK: call
 
   libgb::setup_tiles_for_scene<all_scenes, 1>();
   // memcpy to sprite tile data
-  // CHECK: ld hl, $8000
-  // CHECK: ld bc, $4050
+  // CHECK: ld hl, $8010
+  // CHECK: ld bc, $4010
   // CHECK: ld de, $0010
   // CHECK: call
   // CHECK: ld hl, $8020
-  // CHECK: ld bc, $4080
+  // CHECK: ld bc, $4020
   // CHECK: ld de, $0010
   // CHECK: call
   // CHECK: ld hl, $8030
-  // CHECK: ld bc, $4090
+  // CHECK: ld bc, $4030
   // CHECK: ld de, $0010
   // CHECK: call
 
   // memcpy to bg tile data
   // CHECK: ld hl, $9010
-  // CHECK: ld bc, $4060
+  // CHECK: ld bc, $4050
   // CHECK: ld de, $0010
   // CHECK: call
 

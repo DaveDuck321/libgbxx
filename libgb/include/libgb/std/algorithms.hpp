@@ -44,6 +44,19 @@ consteval auto transform(Collection const &collection, Fn &&map) {
   return result;
 }
 
+template <typename T, size_t size_lhs, size_t size_rhs>
+consteval auto concat(libgb::Array<T, size_lhs> const &lhs,
+                      libgb::Array<T, size_rhs> const &rhs) {
+  Array<T, size_lhs + size_rhs> result;
+  for (auto const &[index, item_lhs] : enumerate(lhs)) {
+    result[index] = item_lhs;
+  }
+  for (auto const &[index, item_rhs] : enumerate(rhs)) {
+    result[size_lhs + index] = item_rhs;
+  }
+  return result;
+}
+
 template <size_t Start, size_t End, is_collection Collection>
 consteval auto slice(Collection const &collection)
     -> Array<element_type<Collection>, End - Start> {
