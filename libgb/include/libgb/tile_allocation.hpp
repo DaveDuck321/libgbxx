@@ -7,6 +7,7 @@
 #include <libgb/std/assert.hpp>
 #include <libgb/std/fixed_vector.hpp>
 #include <libgb/std/ranges.hpp>
+#include <libgb/video.hpp>
 
 #include <stdint.h>
 
@@ -232,12 +233,12 @@ struct Scene {
 };
 
 // TODO: shrinkwrap
-template <size_t SceneCount> struct AllScenes {
+template <size_t SceneCount> struct SceneManager {
   TileRegistry m_tile_registry;
   Array<Scene, SceneCount> m_scenes;
 
   template <typename... Scenes>
-  explicit consteval AllScenes(TileRegistry tile_registry, Scenes... scenes)
+  explicit consteval SceneManager(TileRegistry tile_registry, Scenes... scenes)
       : m_tile_registry{tile_registry}, m_scenes{scenes...} {}
 
   consteval auto background_tile_address(size_t scene_id,
@@ -265,10 +266,11 @@ template <size_t SceneCount> struct AllScenes {
 };
 
 template <typename... Scenes>
-AllScenes(TileRegistry, Scenes... scenes) -> AllScenes<sizeof...(Scenes)>;
+SceneManager(TileRegistry, Scenes... scenes) -> SceneManager<sizeof...(Scenes)>;
 
+namespace impl {
 template <Scene scene, size_t AllTileCount>
-inline auto setup_tiles_for_scene(
+inline auto setup_scene_tile_mapping(
     libgb::Array<libgb::arch::Tile, AllTileCount> const &all_tile_data,
     size_t sprite_offset, size_t background_offset) -> void {
   static constexpr auto sprite_mapping =
@@ -306,12 +308,14 @@ template <TileRegistry registry>
 static constexpr auto all_tile_data =
     concat(to_array<registry.m_all_sprite_tiles>(),
            to_array<registry.m_all_background_tiles>());
+} // namespace impl
 
-template <AllScenes all_scenes, size_t scene_index>
-[[gnu::noinline]] inline auto setup_tiles_for_scene() -> void {
+template <SceneManager all_scenes, size_t scene_index>
+[[gnu::noinline]] inline auto
+setup_scene_tile_mapping(libgb::ScopedVRAMGuard const &) -> void {
   static constexpr auto scene = all_scenes.m_scenes[scene_index];
   static constexpr auto registry = all_scenes.m_tile_registry;
-  setup_tiles_for_scene<scene>(all_tile_data<registry>, 0,
-                               registry.m_all_sprite_tiles.size());
+  impl::setup_scene_tile_mapping<scene>(impl::all_tile_data<registry>, 0,
+                                        registry.m_all_sprite_tiles.size());
 }
 } // namespace libgb

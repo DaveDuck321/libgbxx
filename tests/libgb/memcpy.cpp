@@ -41,35 +41,35 @@ auto check_result() -> int {
 
 int main() {
   asm volatile("debugtrap" ::: "memory");
-  ::memset(small.data(), 1, small.size());
-  // CHECK: Cycles since last: 87
+  libgb::memset(small.data(), 1, small.size());
+  // CHECK: Cycles since last: 86
   asm volatile("debugtrap" ::: "memory");
 
-  ::memset(medium.data(), 2, medium.size());
-  // CHECK: Cycles since last: 267
+  libgb::memset(medium.data(), 2, medium.size());
+  // CHECK: Cycles since last: 266
   asm volatile("debugtrap" ::: "memory");
 
-  ::memset(large.data(), 3, large.size());
-  // CHECK: Cycles since last: 795
+  libgb::memset(large.data(), 3, large.size());
+  // CHECK: Cycles since last: 794
   asm volatile("debugtrap" ::: "memory");
 
-  ::memset(very_large.data(), 4, very_large.size());
-  // CHECK: Cycles since last: 3111
+  libgb::memset(very_large.data(), 4, very_large.size());
+  // CHECK: Cycles since last: 3110
   asm volatile("debugtrap" ::: "memory");
 
-  ::memcpy(buffer.data(), very_large.data(), very_large.size());
+  libgb::memcpy(buffer.data(), very_large.data(), very_large.size());
   // CHECK: Cycles since last: 5158
   asm volatile("debugtrap" ::: "memory");
 
-  ::memcpy(buffer.data(), large.data(), large.size());
+  libgb::memcpy(buffer.data(), large.data(), large.size());
   // CHECK: Cycles since last: 1306
   asm volatile("debugtrap" ::: "memory");
 
-  ::memcpy(buffer.data(), medium.data(), medium.size());
+  libgb::memcpy(buffer.data(), medium.data(), medium.size());
   // CHECK: Cycles since last: 426
   asm volatile("debugtrap" ::: "memory");
 
-  ::memcpy(buffer.data(), small.data(), small.size());
+  libgb::memcpy(buffer.data(), small.data(), small.size());
   // CHECK: Cycles since last: 126
   asm volatile("debugtrap" ::: "memory");
 

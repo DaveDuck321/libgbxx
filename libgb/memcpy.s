@@ -27,7 +27,7 @@ memset:								; @memset(hl = void *dst, bc = int byte, de = size_t count)
 	ld a, e
 	or a								; Is LSB already 0?
 
-	ld a, c								; From now on "byte" lives in a
+	ld a, b								; From now on "byte" lives in a
 	jr z, .memset_msb_loop_entry
 .memset_lsb_loop_entry:
 										; Happy loop: entirely 8-bit math, compare is free

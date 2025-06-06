@@ -63,14 +63,14 @@ static constexpr auto all_scenes = [] {
   scene2.register_sprite_tile(registry, black_tile);
   scene2.register_sprite_tiles(registry, stripe_tile_1, stripe_tile_2);
   scene2.register_background_tile(registry, white_tile);
-  return libgb::AllScenes(registry, scene1, scene2);
+  return libgb::SceneManager(registry, scene1, scene2);
 }();
 
 static auto setup_vram() -> void {
   asm volatile("debugtrap" ::: "memory");
-  libgb::ScopedVRAMGuard _;
+  libgb::ScopedVRAMGuard vram_guard;
 
-  libgb::setup_tiles_for_scene<all_scenes, 0>();
+  libgb::setup_scene_tile_mapping<all_scenes, 0>(vram_guard);
   // TODO: the compiler should combine these memcpys
   // memcpy to sprite tile data
   // CHECK: ld hl, $8000
@@ -88,7 +88,7 @@ static auto setup_vram() -> void {
   // CHECK: ld de, $0010
   // CHECK: call
 
-  libgb::setup_tiles_for_scene<all_scenes, 1>();
+  libgb::setup_scene_tile_mapping<all_scenes, 1>(vram_guard);
   // memcpy to sprite tile data
   // CHECK: ld hl, $8010
   // CHECK: ld bc, $4010
