@@ -41,12 +41,12 @@ static auto do_large_copy_into_vram() {
       libgb::TileIndex{0}, libgb::TileAddressingMode::bg_window_unsigned);
 
   for (uint8_t tile_index = 1; tile_index != 0; tile_index += 1) {
-    libgb::set_tile(
+    libgb::set_tile_data(
         libgb::tile_address(libgb::TileIndex{1},
                             libgb::TileAddressingMode::bg_window_unsigned),
         black_tile);
   }
-  libgb::set_tile(white_tile_addr, white_tile);
+  libgb::set_tile_data(white_tile_addr, white_tile);
 
   libgb::arch::set_bg_palette_data(libgb::arch::BgPaletteData{
       .id_0 = libgb::arch::PaletteColor::black,

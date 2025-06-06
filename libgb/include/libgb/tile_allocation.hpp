@@ -292,14 +292,14 @@ inline auto setup_scene_tile_mapping(
 #pragma clang loop unroll(full)
   for (auto [tile, tile_address] : sprite_mapping) {
     if (tile != TileRegistryIndex::invalid_index) {
-      set_tile(tile_address, all_tile_data[+tile + sprite_offset]);
+      set_tile_data(tile_address, all_tile_data[+tile + sprite_offset]);
     }
   }
 
 #pragma clang loop unroll(full)
   for (auto [tile, tile_address] : bg_mapping) {
     if (tile != TileRegistryIndex::invalid_index) {
-      set_tile(tile_address, all_tile_data[+tile + background_offset]);
+      set_tile_data(tile_address, all_tile_data[+tile + background_offset]);
     }
   }
 }

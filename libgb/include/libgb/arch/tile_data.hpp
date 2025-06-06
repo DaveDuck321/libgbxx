@@ -39,7 +39,7 @@ constexpr auto tile_address(TileIndex index, TileAddressingMode mode)
   }
 }
 
-inline auto set_tile(TileAddress dst, arch::Tile const &src) -> void {
+inline auto set_tile_data(TileAddress dst, arch::Tile const &src) -> void {
   libgb::memcpy((uint8_t volatile *)dst, (const uint8_t *)&src,
                 sizeof(arch::Tile));
 }

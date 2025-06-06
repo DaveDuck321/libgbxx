@@ -19,7 +19,10 @@ template <typename T> struct is_same_t<T, T> {
 template <typename T1, typename T2>
 concept is_same = is_same_t<T1, T2>::value;
 
-template <typename Enum> using underlying_type = __underlying_type(Enum);
+template <typename T>
+concept is_enum = __is_enum(T);
+
+template <is_enum Enum> using underlying_type = __underlying_type(Enum);
 
 template <typename T> consteval auto declvalue() -> T {
   static_assert(false, "unreachable");
