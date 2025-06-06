@@ -596,7 +596,7 @@
     {
         "type": "register",
         "address": "0xff48",
-        "name": "obj_0_palette_data",
+        "name": "sprite_0_palette_data",
         "comment": "Non-CGB mode only",
         "layout": [
             {
@@ -626,7 +626,7 @@
     {
         "type": "register",
         "address": "0xff49",
-        "name": "obj_1_palette_data",
+        "name": "sprite_1_palette_data",
         "comment": "Non-CGB mode only",
         "layout": [
             {
