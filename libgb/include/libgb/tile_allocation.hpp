@@ -270,7 +270,7 @@ SceneManager(TileRegistry, Scenes... scenes) -> SceneManager<sizeof...(Scenes)>;
 
 namespace impl {
 template <Scene scene, size_t AllTileCount>
-inline auto setup_scene_tile_mapping(
+[[gnu::always_inline]] inline auto setup_scene_tile_mapping(
     libgb::Array<libgb::arch::Tile, AllTileCount> const &all_tile_data,
     size_t sprite_offset, size_t background_offset) -> void {
   static constexpr auto sprite_mapping =
