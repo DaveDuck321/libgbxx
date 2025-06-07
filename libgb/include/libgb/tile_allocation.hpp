@@ -1,5 +1,6 @@
 #pragma once
 
+#include <libgb/arch/sprite_map.hpp>
 #include <libgb/arch/tile.hpp>
 #include <libgb/arch/tile_data.hpp>
 #include <libgb/std/algorithms.hpp>
@@ -317,5 +318,17 @@ setup_scene_tile_mapping(libgb::ScopedVRAMGuard const &) -> void {
   static constexpr auto registry = all_scenes.m_tile_registry;
   impl::setup_scene_tile_mapping<scene>(impl::all_tile_data<registry>, 0,
                                         registry.m_all_sprite_tiles.size());
+}
+
+template <SceneManager all_scenes, size_t scene_index>
+[[gnu::noinline]] inline auto setup_inactive_sprite_map() -> void {
+  static constexpr auto scene = all_scenes.m_scenes[scene_index];
+  clear_sprite_map(inactive_sprite_map);
+  libgb::copy_into_active_sprite_map(inactive_sprite_map);
+
+#pragma clang loop unroll(full)
+  for (auto [sprite_index, tile_index] : enumerate(scene.m_sprites)) {
+    libgb::inactive_sprite_map.data[sprite_index].index = tile_index;
+  }
 }
 } // namespace libgb
