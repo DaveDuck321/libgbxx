@@ -5,7 +5,7 @@ __libgb_do_dma:                 ; void do_dma(uint8_t high)
     ld a, b
     ldh (0x46), a
     ld a, 40
-__libgb_dma_wait:
+.Ldma_wait:
     dec a
-    jr nz, __libgb_dma_wait
+    jr nz, .Ldma_wait
     ret
