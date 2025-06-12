@@ -9,6 +9,11 @@ namespace libgb {
 namespace arch {
 struct [[gnu::packed, gnu::aligned(256)]] SpriteMap {
   libgb::Array<Sprite, 40> data;
+
+  template <typename Self>
+  constexpr auto operator[](this Self &&self, uint8_t index) -> decltype(auto) {
+    return self.data[index];
+  }
 };
 
 inline volatile SpriteMap *const active_sprite_map = (SpriteMap *)0xFE00;
