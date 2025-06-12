@@ -20,11 +20,11 @@
         "width": 8,
         "values": [
             {
-                "name": "dpad",
+                "name": "buttons",
                 "value": 1
             },
             {
-                "name": "buttons",
+                "name": "dpad",
                 "value": 2
             }
         ]
