@@ -76,4 +76,9 @@ static constexpr auto tile_dims = Dimension{
     .width = Pixels{8},
     .height = Pixels{8},
 };
+
+static constexpr auto sprite_screen_offset = Dimension{
+    .width = Pixels{8},
+    .height = Pixels{16},
+};
 } // namespace libgb
