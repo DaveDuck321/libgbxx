@@ -25,6 +25,7 @@ LIBGB_OBJECTS = \
 	$(LIBGB_BUILD_DIR)/interrupts.o \
 	$(LIBGB_BUILD_DIR)/memcpy.o \
 	$(LIBGB_BUILD_DIR)/meta.o \
+	$(LIBGB_BUILD_DIR)/random.o \
 	$(LIBGB_BUILD_DIR)/runtime.o \
 	$(LIBGB_BUILD_DIR)/serial.o \
 
