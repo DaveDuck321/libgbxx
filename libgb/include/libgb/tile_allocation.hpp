@@ -78,9 +78,6 @@ struct Scene {
 
   // TODO: shared tiles
 
-  // TODO: use intra-frame DMA to allow more sprites
-  FixedVector<TileIndex, sprite_count> m_sprites = {};
-
   consteval Scene() {
     for (auto &tile : m_sprite_tiles) {
       tile = TileRegistryIndex::invalid_index;
@@ -173,9 +170,7 @@ struct Scene {
   template <typename Registry>
   consteval auto register_sprite_tile(Registry &registry,
                                       arch::Tile const &tile) -> void {
-    auto index =
-        insert_tile(m_sprite_tiles, registry.register_sprite_tile(tile));
-    m_sprites.push_back(TileIndex{(uint8_t)index});
+    insert_tile(m_sprite_tiles, registry.register_sprite_tile(tile));
   }
 
   template <typename Registry>
@@ -184,9 +179,7 @@ struct Scene {
                                        arch::Tile const &tile_lower) -> void {
     auto upper_id = registry.register_sprite_tile(tile_upper);
     auto lower_id = registry.register_sprite_tile(tile_lower);
-    auto upper_index =
-        insert_double_height_tile(m_sprite_tiles, upper_id, lower_id);
-    m_sprites.push_back(TileIndex{upper_index});
+    insert_double_height_tile(m_sprite_tiles, upper_id, lower_id);
   }
 
   template <typename Registry>
@@ -318,17 +311,5 @@ setup_scene_tile_mapping(libgb::ScopedVRAMGuard const &) -> void {
   static constexpr auto registry = all_scenes.m_tile_registry;
   impl::setup_scene_tile_mapping<scene>(impl::all_tile_data<registry>, 0,
                                         registry.m_all_sprite_tiles.size());
-}
-
-template <SceneManager all_scenes, size_t scene_index>
-[[gnu::noinline]] inline auto setup_inactive_sprite_map() -> void {
-  static constexpr auto scene = all_scenes.m_scenes[scene_index];
-  clear_sprite_map(inactive_sprite_map);
-  libgb::copy_into_active_sprite_map(inactive_sprite_map);
-
-#pragma clang loop unroll(full)
-  for (auto [sprite_index, tile_index] : enumerate(scene.m_sprites)) {
-    libgb::inactive_sprite_map.data[sprite_index].index = tile_index;
-  }
 }
 } // namespace libgb
