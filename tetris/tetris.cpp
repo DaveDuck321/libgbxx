@@ -333,6 +333,11 @@ struct FallingPiece {
 
   constexpr auto try_rotate_clockwise() -> void {
     uint8_t target_rotation = ((uint8_t)(m_rotation + 1)) % 4;
+    if (is_position_legal(m_position, target_rotation)) {
+      m_rotation = target_rotation;
+      return;
+    }
+
     auto const &kicks = (*m_clockwise_kicks)[m_rotation];
     for (auto kick : kicks) {
       if (is_position_legal(m_position + kick, target_rotation)) {
@@ -345,6 +350,11 @@ struct FallingPiece {
 
   constexpr auto try_rotate_counter_clockwise() -> void {
     uint8_t target_rotation = ((uint8_t)(m_rotation - 1)) % 4;
+    if (is_position_legal(m_position, target_rotation)) {
+      m_rotation = target_rotation;
+      return;
+    }
+
     auto const &kicks = (*m_counter_clockwise_kicks)[m_rotation];
     for (auto kick : kicks) {
       if (is_position_legal(m_position + kick, target_rotation)) {
