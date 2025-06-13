@@ -324,9 +324,13 @@ struct FallingPiece {
     }
   }
 
+  constexpr auto can_move_down() -> bool {
+    return is_position_legal({m_position.x, (int8_t)(m_position.y - 1)},
+                             m_rotation);
+  }
+
   constexpr auto try_move_down() -> void {
-    if (is_position_legal({m_position.x, (int8_t)(m_position.y - 1)},
-                          m_rotation)) {
+    if (can_move_down()) {
       m_position.y -= 1;
     }
   }
@@ -482,17 +486,8 @@ static auto generate_falling_piece() -> void {
   generate_falling_piece();
 }
 
-int main() {
-  libgb::enable_interrupts();
-  setup_lcd_controller();
-  libgb::clear_sprite_map(libgb::inactive_sprite_map);
-  libgb::copy_into_active_sprite_map(libgb::inactive_sprite_map);
-  setup_scene(libgb::ScopedVRAMGuard{});
-  setup_sprites();
-
+auto handle_updates() -> void {
   static constexpr libgb::Array<uint8_t, 2> delay_between_shifts = {5, 2};
-
-  static uint8_t frame = 0;
 
   static bool is_up_pressed = false;
   static bool is_a_pressed = false;
@@ -501,90 +496,106 @@ int main() {
   static uint8_t ticks_until_next_shift = 0;
   static uint8_t shift_delay_index = 0;
 
+  bool is_any_direction_pressed = false;
+
+  libgb::arch::set_joypad_select(libgb::arch::JoypadInputSelect::dpad);
+  auto arrows = libgb::arch::get_joypad();
+
+  if (arrows.left_or_b == libgb::arch::JoypadButton::pressed) {
+    if (ticks_until_next_shift-- == 0) {
+      falling_piece.try_move_left();
+      ticks_until_next_shift = delay_between_shifts[shift_delay_index];
+      if (shift_delay_index != delay_between_shifts.size() - 1) {
+        shift_delay_index += 1;
+      }
+    }
+    is_any_direction_pressed = true;
+  }
+
+  if (arrows.right_or_a == libgb::arch::JoypadButton::pressed) {
+    if (ticks_until_next_shift-- == 0) {
+      falling_piece.try_move_right();
+      ticks_until_next_shift = delay_between_shifts[shift_delay_index];
+      if (shift_delay_index != delay_between_shifts.size() - 1) {
+        shift_delay_index += 1;
+      }
+    }
+    is_any_direction_pressed = true;
+  }
+
+  if (arrows.down_or_start == libgb::arch::JoypadButton::pressed) {
+    if (ticks_until_next_shift-- == 0) {
+      falling_piece.try_move_down();
+
+      // Down arrow does not accelerate
+      ticks_until_next_shift =
+          delay_between_shifts[delay_between_shifts.size() - 1];
+    }
+    is_any_direction_pressed = true;
+  }
+
+  libgb::arch::set_joypad_select(libgb::arch::JoypadInputSelect::buttons);
+  auto buttons = libgb::arch::get_joypad();
+
+  if (buttons.right_or_a == libgb::arch::JoypadButton::pressed) {
+    if (not is_a_pressed) {
+      falling_piece.try_rotate_clockwise();
+      is_a_pressed = true;
+    }
+  } else {
+    is_a_pressed = false;
+  }
+
+  if (buttons.left_or_b == libgb::arch::JoypadButton::pressed) {
+    if (not is_b_pressed) {
+      falling_piece.try_rotate_counter_clockwise();
+      is_b_pressed = true;
+    }
+  } else {
+    is_b_pressed = false;
+  }
+
+  if (not is_any_direction_pressed) {
+    ticks_until_next_shift = 0;
+    shift_delay_index = 0;
+  }
+
+  falling_piece.update_hard_drop_positions();
+
+  if (arrows.up_or_select == libgb::arch::JoypadButton::pressed) {
+    if (not is_up_pressed) {
+      // First frame of up arrow pressed... Hard-drop
+      falling_piece.hard_drop();
+      falling_piece.copy_into_current_grid();
+      piece_is_dropped = true;
+    }
+    is_up_pressed = true;
+  } else {
+    is_up_pressed = false;
+  }
+  falling_piece.copy_position_into_underlying_sprite(scroll_y);
+
+  if (piece_is_dropped) {
+    generate_falling_piece();
+    piece_is_dropped = false;
+  }
+}
+
+int main() {
+  libgb::enable_interrupts();
+  setup_lcd_controller();
+  libgb::clear_sprite_map(libgb::inactive_sprite_map);
+  libgb::copy_into_active_sprite_map(libgb::inactive_sprite_map);
+  setup_scene(libgb::ScopedVRAMGuard{});
+  setup_sprites();
+
+  static uint8_t frame = 0;
+
   // Main game loop
   libgb::wait_for_interrupt<libgb::Interrupt::vblank>();
   libgb::wait_for_interrupt<libgb::Interrupt::vblank>();
-  libgb::wait_for_interrupt<libgb::Interrupt::vblank>();
   while (1) {
-    bool is_any_direction_pressed = false;
-
-    libgb::arch::set_joypad_select(libgb::arch::JoypadInputSelect::dpad);
-    auto arrows = libgb::arch::get_joypad();
-
-    if (arrows.left_or_b == libgb::arch::JoypadButton::pressed) {
-      if (ticks_until_next_shift-- == 0) {
-        falling_piece.try_move_left();
-        ticks_until_next_shift = delay_between_shifts[shift_delay_index];
-        if (shift_delay_index != delay_between_shifts.size() - 1) {
-          shift_delay_index += 1;
-        }
-      }
-      is_any_direction_pressed = true;
-    }
-
-    if (arrows.right_or_a == libgb::arch::JoypadButton::pressed) {
-      if (ticks_until_next_shift-- == 0) {
-        falling_piece.try_move_right();
-        ticks_until_next_shift = delay_between_shifts[shift_delay_index];
-        if (shift_delay_index != delay_between_shifts.size() - 1) {
-          shift_delay_index += 1;
-        }
-      }
-      is_any_direction_pressed = true;
-    }
-
-    if (arrows.down_or_start == libgb::arch::JoypadButton::pressed) {
-      if (ticks_until_next_shift-- == 0) {
-        falling_piece.try_move_down();
-
-        // Down arrow does not accelerate
-        ticks_until_next_shift =
-            delay_between_shifts[delay_between_shifts.size() - 1];
-      }
-      is_any_direction_pressed = true;
-    }
-
-    libgb::arch::set_joypad_select(libgb::arch::JoypadInputSelect::buttons);
-    auto buttons = libgb::arch::get_joypad();
-
-    if (buttons.right_or_a == libgb::arch::JoypadButton::pressed) {
-      if (not is_a_pressed) {
-        falling_piece.try_rotate_clockwise();
-        is_a_pressed = true;
-      }
-    } else {
-      is_a_pressed = false;
-    }
-
-    if (buttons.left_or_b == libgb::arch::JoypadButton::pressed) {
-      if (not is_b_pressed) {
-        falling_piece.try_rotate_counter_clockwise();
-        is_b_pressed = true;
-      }
-    } else {
-      is_b_pressed = false;
-    }
-
-    falling_piece.update_hard_drop_positions();
-
-    if (arrows.up_or_select == libgb::arch::JoypadButton::pressed) {
-      if (not is_up_pressed) {
-        // First frame of up arrow pressed... Hard-drop
-        falling_piece.hard_drop();
-        falling_piece.copy_into_current_grid();
-        piece_is_dropped = true;
-      }
-      is_up_pressed = true;
-    } else {
-      is_up_pressed = false;
-    }
-
-    falling_piece.copy_position_into_underlying_sprite(scroll_y);
-
-    if (not is_any_direction_pressed) {
-      ticks_until_next_shift = 0;
-      shift_delay_index = 0;
-    }
+    handle_updates();
 
     // Commit to VRAM
     frame += 1;
@@ -598,11 +609,6 @@ int main() {
       copy_grid_into_vram<1>();
     }
     libgb::arch::set_background_viewport_y(libgb::count_px(scroll_y));
-
-    if (piece_is_dropped) {
-      generate_falling_piece();
-      piece_is_dropped = false;
-    }
     libgb::copy_into_active_sprite_map(libgb::inactive_sprite_map);
   }
 }
