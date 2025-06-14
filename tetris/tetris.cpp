@@ -53,6 +53,17 @@ static constexpr auto piece_tile = build_tile({{
     {C0, C0, C0, C0, C0, C0, C0, C0},
 }});
 
+static constexpr auto completed_piece_tile = build_tile({{
+    {C0, C3, C3, C3, C3, C3, C3, C3},
+    {C0, C3, C3, C3, C3, C3, C3, C3},
+    {C0, C3, C3, C3, C3, C3, C3, C3},
+    {C0, C3, C3, C3, C3, C3, C3, C3},
+    {C0, C3, C3, C3, C3, C3, C3, C3},
+    {C0, C3, C3, C3, C3, C3, C3, C3},
+    {C0, C3, C3, C3, C3, C3, C3, C3},
+    {C0, C0, C0, C0, C0, C0, C0, C0},
+}});
+
 static constexpr auto hard_drop_tile = build_tile({{
     {C0, C1, C1, C1, C1, C1, C1, C1},
     {C0, C1, C0, C0, C0, C0, C0, C1},
@@ -125,6 +136,7 @@ static constexpr auto scene_manager = [] {
 
   scene.register_background_tile(registry, black_tile);
   scene.register_background_tile(registry, piece_tile);
+  scene.register_background_tile(registry, completed_piece_tile);
   scene.register_sprite_tile(registry, piece_tile);
   scene.register_sprite_tile(registry, hard_drop_tile);
 
@@ -207,7 +219,8 @@ static auto setup_lcd_controller() -> void {
 
 struct CurrentGrid {
   using Row = libgb::Array<libgb::TileIndex, board_width + 6>;
-  libgb::Array<Row, board_height> data;
+  libgb::Array<Row, board_height> m_data;
+  libgb::Array<uint8_t, board_height> m_tile_count;
 
   constexpr auto is_occupied_or_out_of_bounds(uint8_t y, uint8_t x) const
       -> bool {
@@ -221,11 +234,12 @@ struct CurrentGrid {
   }
 
   constexpr auto is_empty(uint8_t y, uint8_t x) const -> bool {
-    return data[y][x] == scene_manager.background_tile_index(0, black_tile);
+    return m_data[y][x] == scene_manager.background_tile_index(0, black_tile);
   }
 
   constexpr auto set_full(uint8_t y, uint8_t x) -> void {
-    data[y][x] = scene_manager.background_tile_index(0, piece_tile);
+    m_data[y][x] = scene_manager.background_tile_index(0, piece_tile);
+    m_tile_count[y] += 1;
   }
 
   constexpr auto get_hard_drop_position(uint8_t current_height,
@@ -236,6 +250,48 @@ struct CurrentGrid {
       }
     }
     return 0;
+  }
+
+  constexpr auto mark_rows_as_complete() -> uint8_t {
+    uint8_t completed_rows = 0;
+    for (auto [y, tile_count] : libgb::enumerate(m_tile_count)) {
+      if (tile_count == board_width) {
+        completed_rows += 1;
+        libgb::memset((uint8_t *)&m_data[y],
+                      libgb::to_underlying(scene_manager.background_tile_index(
+                          0, completed_piece_tile)),
+                      sizeof(libgb::TileIndex) * board_width);
+      }
+    }
+    return completed_rows;
+  }
+
+  constexpr auto delete_cleared_rows() -> void {
+    uint8_t old_index = 0;
+    uint8_t new_index = 0;
+    while (old_index != board_height) {
+      if (m_tile_count[old_index] == board_width) {
+        old_index += 1;
+        continue;
+      }
+
+      libgb::memcpy((uint8_t *)&m_data[new_index],
+                    (uint8_t *)&m_data[old_index],
+                    sizeof(libgb::TileIndex) * board_width);
+      m_tile_count[new_index] = m_tile_count[old_index];
+      old_index += 1;
+      new_index += 1;
+    }
+
+    // Fill out the remaining empty rows
+    while (new_index != board_height) {
+      libgb::memset((uint8_t *)&m_data[new_index],
+                    libgb::to_underlying(
+                        scene_manager.background_tile_index(0, black_tile)),
+                    sizeof(libgb::TileIndex) * board_width);
+      m_tile_count[new_index] = 0;
+      new_index += 1;
+    }
   }
 };
 
@@ -253,7 +309,7 @@ template <size_t parity> inline auto copy_grid_into_vram() -> void {
     for (uint8_t column = 0; column < board_width; column += 1) {
       auto const tile_x = libgb::Tiles{column};
       libgb::set_tile_mapping<libgb::TileMap::map_0>(
-          tile_y, tile_x, current_grid.data[row][column]);
+          tile_y, tile_x, current_grid.m_data[row][column]);
     }
   }
 }
@@ -327,13 +383,9 @@ struct FallingPiece {
     }
   }
 
-  constexpr auto can_move_down() -> bool {
-    return is_position_legal({m_position.x, (int8_t)(m_position.y - 1)},
-                             m_rotation);
-  }
-
   constexpr auto try_move_down() -> void {
-    if (can_move_down()) {
+    if (is_position_legal({m_position.x, (int8_t)(m_position.y - 1)},
+                          m_rotation)) {
       m_position.y -= 1;
       m_frames_on_ground = 0;
     }
@@ -403,6 +455,16 @@ struct FallingPiece {
     }
   }
 
+  auto hide_until_next_update() -> void {
+    for (auto *sprite : underlying_piece_sprites) {
+      sprite->pos_y = 0;
+    }
+
+    for (auto *sprite : underlying_hard_drop_sprites) {
+      sprite->pos_y = 0;
+    }
+  }
+
   auto copy_position_into_underlying_sprite(libgb::Pixels screen_y_scroll)
       -> void {
     auto const &current_offsets = (*m_piece_rotations)[m_rotation];
@@ -449,8 +511,6 @@ struct FallingPiece {
 static FallingPiece falling_piece = {};
 
 static auto generate_falling_piece() -> void {
-  falling_piece.set_underlying_sprite_color_index();
-
   auto piece_type = libgb::uniform_random_byte() % 8;
   while (piece_type == 7) {
     piece_type = libgb::uniform_random_byte() % 8;
@@ -498,11 +558,9 @@ static auto generate_falling_piece() -> void {
   falling_piece.m_rotation = 0;
 }
 
-[[gnu::noinline]] static auto setup_sprites() -> void {
-  generate_falling_piece();
-}
+static uint8_t lines_left_to_clear = 0;
 
-auto handle_updates() -> void {
+auto handle_gameplay_updates() -> void {
   static constexpr libgb::Array<uint8_t, 2> delay_between_shifts = {5, 2};
 
   static bool is_up_pressed = false;
@@ -606,9 +664,20 @@ auto handle_updates() -> void {
 
   if (piece_is_dropped) {
     falling_piece.copy_into_current_grid();
-    generate_falling_piece();
+    lines_left_to_clear = current_grid.mark_rows_as_complete();
+    if (lines_left_to_clear == 0) {
+      generate_falling_piece();
+    } else {
+      falling_piece.hide_until_next_update();
+    }
     piece_is_dropped = false;
   }
+}
+
+auto handle_line_clear_animation() -> void {
+  current_grid.delete_cleared_rows();
+  generate_falling_piece();
+  lines_left_to_clear = 0;
 }
 
 int main() {
@@ -617,7 +686,8 @@ int main() {
   libgb::clear_sprite_map(libgb::inactive_sprite_map);
   libgb::copy_into_active_sprite_map(libgb::inactive_sprite_map);
   setup_scene(libgb::ScopedVRAMGuard{});
-  setup_sprites();
+  falling_piece.set_underlying_sprite_color_index();
+  generate_falling_piece();
 
   static uint8_t frame = 0;
 
@@ -625,7 +695,11 @@ int main() {
   libgb::wait_for_interrupt<libgb::Interrupt::vblank>();
   libgb::wait_for_interrupt<libgb::Interrupt::vblank>();
   while (1) {
-    handle_updates();
+    if (lines_left_to_clear == 0) {
+      handle_gameplay_updates();
+    } else {
+      handle_line_clear_animation();
+    }
 
     // Commit to VRAM
     frame += 1;
