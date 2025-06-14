@@ -41,7 +41,6 @@ TEST_OBJECTS = \
 	$(TEST_BUILD_DIR)/print.o \
 	$(TEST_BUILD_DIR)/tile_allocation.o \
 	$(TEST_BUILD_DIR)/vram_guard.o \
-	$(TEST_BUILD_DIR)/vram_copy.o \
 
 TEST_ROMS = $(TEST_OBJECTS:.o=.gb)
 TEST_ELFS = $(TEST_OBJECTS:.o=.out)

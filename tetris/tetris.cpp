@@ -279,8 +279,9 @@ struct FallingPiece {
   Kicks const *m_counter_clockwise_kicks;
 
   Coordinate m_position;
-  int8_t m_harddrop_y;
+  int8_t m_hard_drop_y;
   uint8_t m_rotation;
+  uint8_t m_frames_on_ground;
 
   auto set_underlying_sprite_color_index() -> void {
     auto piece_tile_index = scene_manager.sprite_tile_index(0, piece_tile);
@@ -314,6 +315,7 @@ struct FallingPiece {
     if (is_position_legal({(int8_t)(m_position.x + 1), m_position.y},
                           m_rotation)) {
       m_position.x += 1;
+      m_frames_on_ground = 0;
     }
   }
 
@@ -321,6 +323,7 @@ struct FallingPiece {
     if (is_position_legal({(int8_t)(m_position.x - 1), m_position.y},
                           m_rotation)) {
       m_position.x -= 1;
+      m_frames_on_ground = 0;
     }
   }
 
@@ -332,6 +335,7 @@ struct FallingPiece {
   constexpr auto try_move_down() -> void {
     if (can_move_down()) {
       m_position.y -= 1;
+      m_frames_on_ground = 0;
     }
   }
 
@@ -339,6 +343,7 @@ struct FallingPiece {
     uint8_t target_rotation = ((uint8_t)(m_rotation + 1)) % 4;
     if (is_position_legal(m_position, target_rotation)) {
       m_rotation = target_rotation;
+      m_frames_on_ground = 0;
       return;
     }
 
@@ -347,6 +352,7 @@ struct FallingPiece {
       if (is_position_legal(m_position + kick, target_rotation)) {
         m_position = m_position + kick;
         m_rotation = target_rotation;
+        m_frames_on_ground = 0;
         return;
       }
     }
@@ -356,6 +362,7 @@ struct FallingPiece {
     uint8_t target_rotation = ((uint8_t)(m_rotation - 1)) % 4;
     if (is_position_legal(m_position, target_rotation)) {
       m_rotation = target_rotation;
+      m_frames_on_ground = 0;
       return;
     }
 
@@ -364,12 +371,15 @@ struct FallingPiece {
       if (is_position_legal(m_position + kick, target_rotation)) {
         m_position = m_position + kick;
         m_rotation = target_rotation;
+        m_frames_on_ground = 0;
         return;
       }
     }
   }
 
-  auto hard_drop() -> void { m_position = {m_position.x, m_harddrop_y}; }
+  constexpr auto hard_drop() -> void {
+    m_position = {m_position.x, m_hard_drop_y};
+  }
 
   constexpr auto update_hard_drop_positions() -> void {
     uint8_t minimum_offset = 255;
@@ -384,7 +394,13 @@ struct FallingPiece {
         minimum_offset = offset;
       }
     }
-    m_harddrop_y = m_position.y - minimum_offset;
+    m_hard_drop_y = m_position.y - minimum_offset;
+
+    if (minimum_offset == 0) {
+      m_frames_on_ground += 1;
+    } else {
+      m_frames_on_ground = 0;
+    }
   }
 
   auto copy_position_into_underlying_sprite(libgb::Pixels screen_y_scroll)
@@ -407,8 +423,8 @@ struct FallingPiece {
           libgb::count_px(to_px(y_tile) - screen_y_scroll +
                           libgb::sprite_screen_offset.get_height());
 
-      auto hard_drop_y_tile =
-          libgb::Tiles{(uint8_t)(board_height - (m_harddrop_y + y_offset) - 1)};
+      auto hard_drop_y_tile = libgb::Tiles{
+          (uint8_t)(board_height - (m_hard_drop_y + y_offset) - 1)};
 
       hard_drop_sprite->pos_x = piece_sprite->pos_x;
       hard_drop_sprite->pos_y =
@@ -495,6 +511,9 @@ auto handle_updates() -> void {
   static bool piece_is_dropped = false;
   static uint8_t ticks_until_next_shift = 0;
   static uint8_t shift_delay_index = 0;
+  static uint8_t frames_since_drop = 0;
+  static uint8_t frames_between_drop = 40;
+  static constexpr uint8_t frames_before_lock = 20;
 
   bool is_any_direction_pressed = false;
 
@@ -532,6 +551,7 @@ auto handle_updates() -> void {
           delay_between_shifts[delay_between_shifts.size() - 1];
     }
     is_any_direction_pressed = true;
+    frames_since_drop = 0;
   }
 
   libgb::arch::set_joypad_select(libgb::arch::JoypadInputSelect::buttons);
@@ -566,16 +586,26 @@ auto handle_updates() -> void {
     if (not is_up_pressed) {
       // First frame of up arrow pressed... Hard-drop
       falling_piece.hard_drop();
-      falling_piece.copy_into_current_grid();
       piece_is_dropped = true;
     }
     is_up_pressed = true;
   } else {
     is_up_pressed = false;
   }
+
+  if (++frames_since_drop > frames_between_drop) {
+    falling_piece.try_move_down();
+    frames_since_drop = 0;
+  }
+
+  if (falling_piece.m_frames_on_ground > frames_before_lock) {
+    piece_is_dropped = true;
+  }
+
   falling_piece.copy_position_into_underlying_sprite(scroll_y);
 
   if (piece_is_dropped) {
+    falling_piece.copy_into_current_grid();
     generate_falling_piece();
     piece_is_dropped = false;
   }
