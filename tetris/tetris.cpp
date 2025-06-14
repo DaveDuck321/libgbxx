@@ -24,8 +24,8 @@
 using namespace libgb::tile_builder;
 
 [[maybe_unused]] static constexpr uint8_t board_width = 10;
-[[maybe_unused]] static constexpr uint8_t board_height = 18;
-static auto scroll_y = libgb::Pixels{8};
+[[maybe_unused]] static constexpr uint8_t board_height = 16;
+static auto scroll_y = libgb::Pixels{(uint8_t)-8};
 
 static constexpr auto board_screen_offset =
     (libgb::screen_dims.get_width() - libgb::to_px(libgb::Tiles{board_width})) /
@@ -44,11 +44,11 @@ static constexpr auto black_tile = build_tile({{
 
 static constexpr auto piece_tile = build_tile({{
     {C0, C1, C1, C1, C1, C1, C1, C1},
+    {C0, C1, C2, C2, C1, C1, C1, C1},
+    {C0, C1, C2, C1, C1, C1, C1, C1},
     {C0, C1, C1, C1, C1, C1, C1, C1},
-    {C0, C1, C1, C1, C1, C1, C1, C1},
-    {C0, C1, C1, C1, C1, C1, C1, C1},
-    {C0, C1, C1, C1, C1, C1, C1, C1},
-    {C0, C1, C1, C1, C1, C1, C1, C1},
+    {C0, C1, C1, C1, C1, C1, C0, C1},
+    {C0, C1, C1, C1, C1, C0, C0, C1},
     {C0, C1, C1, C1, C1, C1, C1, C1},
     {C0, C0, C0, C0, C0, C0, C0, C0},
 }});
@@ -222,13 +222,17 @@ struct CurrentGrid {
   libgb::Array<Row, board_height> m_data;
   libgb::Array<uint8_t, board_height> m_tile_count;
 
-  constexpr auto is_occupied_or_out_of_bounds(uint8_t y, uint8_t x) const
+  constexpr auto is_occupied_or_out_of_bounds(int8_t y, int8_t x) const
       -> bool {
-    if (y >= board_height) {
+    if (y < 0) {
       return true;
     }
-    if (x >= board_width) {
+    if ((uint8_t)x >= board_width) {
       return true;
+    }
+    if (y >= board_height) {
+      // Allow free movement above the stage
+      return false;
     }
     return !is_empty(y, x);
   }
@@ -244,6 +248,10 @@ struct CurrentGrid {
 
   constexpr auto get_hard_drop_position(uint8_t current_height,
                                         uint8_t column) const -> uint8_t {
+    if (current_height >= board_height) {
+      current_height = board_height - 1;
+    }
+
     for (int8_t row = (int8_t)current_height; row >= 0; row -= 1) {
       if (not is_empty(row, column)) {
         return row + 1;
@@ -359,8 +367,8 @@ struct FallingPiece {
     auto const &current_offsets = (*m_piece_rotations)[rotation];
     for (auto offset : current_offsets) {
       auto tile_coord = offset + position;
-      if (current_grid.is_occupied_or_out_of_bounds((uint8_t)tile_coord.y,
-                                                    (uint8_t)tile_coord.x)) {
+      if (current_grid.is_occupied_or_out_of_bounds(tile_coord.y,
+                                                    tile_coord.x)) {
         return false;
       }
     }
@@ -553,7 +561,7 @@ static auto generate_falling_piece() -> void {
     break;
   }
 
-  int8_t lower_y = board_height - 4;
+  int8_t lower_y = board_height - 2;
   falling_piece.m_position = {3, lower_y};
   falling_piece.m_rotation = 0;
 }
@@ -670,6 +678,7 @@ auto handle_gameplay_updates() -> void {
     } else {
       falling_piece.hide_until_next_update();
     }
+    frames_since_drop = 0;
     piece_is_dropped = false;
   }
 }
@@ -677,6 +686,7 @@ auto handle_gameplay_updates() -> void {
 auto handle_line_clear_animation() -> void {
   current_grid.delete_cleared_rows();
   generate_falling_piece();
+  falling_piece.update_hard_drop_positions();
   lines_left_to_clear = 0;
 }
 
