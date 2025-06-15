@@ -38,15 +38,15 @@ int_input:
 
     .text
 dispatch_handle_interrupt:
-                    ; Save the remaining working registers
+                    # Save the remaining working registers
     push bc
     push de
 
-                    ; The interrupt handler has pointed HL to the user's callback
+                    # The interrupt handler has pointed HL to the user's callback
     ldi a, (hl)
     ld h, (hl)
     ld l, a
-    call (hl)       ; Call into the user-defined handler
+    call (hl)       # Call into the user-defined handler
 
     pop de
     pop bc
