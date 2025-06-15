@@ -26,9 +26,25 @@ constexpr auto operator+(Unit lhs, Unit rhs) -> Unit {
   return static_cast<Unit>(to_underlying(lhs) + to_underlying(rhs));
 }
 
+template <is_measure_unit Unit> constexpr auto operator-(Unit value) -> Unit {
+  return static_cast<Unit>(-to_underlying(value));
+}
+
 template <is_measure_unit Unit>
 constexpr auto operator++(Unit &value) -> Unit & {
   value = static_cast<Unit>(to_underlying(value) + 1);
+  return value;
+}
+
+template <is_measure_unit Unit>
+constexpr auto operator+=(Unit &value, Unit const &other) -> Unit & {
+  value = value + other;
+  return value;
+}
+
+template <is_measure_unit Unit>
+constexpr auto operator-=(Unit &value, Unit const &other) -> Unit & {
+  value = value - other;
   return value;
 }
 

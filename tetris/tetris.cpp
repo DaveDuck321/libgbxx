@@ -23,13 +23,28 @@
 
 using namespace libgb::tile_builder;
 
+static constexpr auto hard_drop_force = libgb::Pixels{(uint8_t)-2};
+static constexpr auto light_hard_drop_force = libgb::Pixels{(uint8_t)-1};
+static constexpr auto side_bump_force = libgb::Pixels{(uint8_t)-2};
+static constexpr auto light_side_bump_force = libgb::Pixels{(uint8_t)-1};
+
 [[maybe_unused]] static constexpr uint8_t board_width = 10;
 [[maybe_unused]] static constexpr uint8_t board_height = 16;
-static auto scroll_y = libgb::Pixels{(uint8_t)-8};
 
-static constexpr auto board_screen_offset =
+static constexpr auto board_screen_offset_x =
     (libgb::screen_dims.get_width() - libgb::to_px(libgb::Tiles{board_width})) /
     2;
+
+static constexpr auto target_scroll_y = libgb::Pixels{(uint8_t)-8};
+
+// For simplicity, the playfield will be indexed from [0, board_width]
+// We scroll the screen so that the playing field appears centered
+static constexpr auto target_scroll_x = board_screen_offset_x;
+
+static auto scroll_speed_x = libgb::Pixels{0};
+static auto scroll_speed_y = libgb::Pixels{0};
+static auto scroll_y = target_scroll_y;
+static auto scroll_x = target_scroll_x;
 
 static constexpr auto black_tile = build_tile({{
     {C0, C0, C0, C0, C0, C0, C0, C0},
@@ -184,10 +199,6 @@ static auto setup_lcd_controller() -> void {
   libgb::setup_scene_tile_mapping<scene_manager, 0>(guard);
   libgb::fill_tile_mapping<libgb::TileMap::map_0>(
       scene_manager.background_tile_index(0, black_tile));
-
-  // For simplicity, the playfield will be indexed from [0, board_width]
-  // We scroll the screen so that the playing field appears centered
-  libgb::arch::set_background_viewport_x(-count_px(board_screen_offset));
 
   // Side boarders
   for (libgb::Tiles row = {}; row < libgb::Tiles{board_height}; ++row) {
@@ -375,36 +386,42 @@ struct FallingPiece {
     return true;
   }
 
-  constexpr auto try_move_right() -> void {
+  constexpr auto try_move_right() -> bool {
     if (is_position_legal({(int8_t)(m_position.x + 1), m_position.y},
                           m_rotation)) {
       m_position.x += 1;
       m_frames_on_ground = 0;
+      return true;
     }
+    return false;
   }
 
-  constexpr auto try_move_left() -> void {
+  constexpr auto try_move_left() -> bool {
     if (is_position_legal({(int8_t)(m_position.x - 1), m_position.y},
                           m_rotation)) {
       m_position.x -= 1;
       m_frames_on_ground = 0;
+      return true;
     }
+    return false;
   }
 
-  constexpr auto try_move_down() -> void {
+  constexpr auto try_move_down() -> bool {
     if (is_position_legal({m_position.x, (int8_t)(m_position.y - 1)},
                           m_rotation)) {
       m_position.y -= 1;
       m_frames_on_ground = 0;
+      return true;
     }
+    return false;
   }
 
-  constexpr auto try_rotate_clockwise() -> void {
+  constexpr auto try_rotate_clockwise() -> bool {
     uint8_t target_rotation = ((uint8_t)(m_rotation + 1)) % 4;
     if (is_position_legal(m_position, target_rotation)) {
       m_rotation = target_rotation;
       m_frames_on_ground = 0;
-      return;
+      return true;
     }
 
     auto const &kicks = (*m_clockwise_kicks)[m_rotation];
@@ -413,17 +430,18 @@ struct FallingPiece {
         m_position = m_position + kick;
         m_rotation = target_rotation;
         m_frames_on_ground = 0;
-        return;
+        return true;
       }
     }
+    return false;
   }
 
-  constexpr auto try_rotate_counter_clockwise() -> void {
+  constexpr auto try_rotate_counter_clockwise() -> bool {
     uint8_t target_rotation = ((uint8_t)(m_rotation - 1)) % 4;
     if (is_position_legal(m_position, target_rotation)) {
       m_rotation = target_rotation;
       m_frames_on_ground = 0;
-      return;
+      return true;
     }
 
     auto const &kicks = (*m_counter_clockwise_kicks)[m_rotation];
@@ -432,9 +450,10 @@ struct FallingPiece {
         m_position = m_position + kick;
         m_rotation = target_rotation;
         m_frames_on_ground = 0;
-        return;
+        return true;
       }
     }
+    return false;
   }
 
   constexpr auto hard_drop() -> void {
@@ -473,8 +492,7 @@ struct FallingPiece {
     }
   }
 
-  auto copy_position_into_underlying_sprite(libgb::Pixels screen_y_scroll)
-      -> void {
+  auto copy_position_into_underlying_sprite() -> void {
     auto const &current_offsets = (*m_piece_rotations)[m_rotation];
 
     size_t index = 0;
@@ -487,18 +505,16 @@ struct FallingPiece {
       auto *hard_drop_sprite = underlying_hard_drop_sprites[index];
 
       piece_sprite->pos_x = libgb::count_px(
-          to_px(x_tile) + libgb::sprite_screen_offset.get_width() +
-          board_screen_offset);
-      piece_sprite->pos_y =
-          libgb::count_px(to_px(y_tile) - screen_y_scroll +
-                          libgb::sprite_screen_offset.get_height());
+          to_px(x_tile) + libgb::sprite_screen_offset.get_width() + scroll_x);
+      piece_sprite->pos_y = libgb::count_px(
+          to_px(y_tile) - scroll_y + libgb::sprite_screen_offset.get_height());
 
       auto hard_drop_y_tile = libgb::Tiles{
           (uint8_t)(board_height - (m_hard_drop_y + y_offset) - 1)};
 
       hard_drop_sprite->pos_x = piece_sprite->pos_x;
       hard_drop_sprite->pos_y =
-          libgb::count_px(to_px(hard_drop_y_tile) - screen_y_scroll +
+          libgb::count_px(to_px(hard_drop_y_tile) - scroll_y +
                           libgb::sprite_screen_offset.get_height());
 
       index += 1;
@@ -569,12 +585,14 @@ static auto generate_falling_piece() -> void {
 static uint8_t lines_left_to_clear = 0;
 
 auto handle_gameplay_updates() -> void {
-  static constexpr libgb::Array<uint8_t, 2> delay_between_shifts = {5, 2};
+  static constexpr libgb::Array<uint8_t, 6> delay_between_shifts = {5, 2, 2,
+                                                                    1, 1, 1};
 
   static bool is_up_pressed = false;
   static bool is_a_pressed = false;
   static bool is_b_pressed = false;
   static bool piece_is_dropped = false;
+  static bool has_bumped = false;
   static uint8_t ticks_until_next_shift = 0;
   static uint8_t shift_delay_index = 0;
   static uint8_t frames_since_drop = 0;
@@ -588,7 +606,18 @@ auto handle_gameplay_updates() -> void {
 
   if (arrows.left_or_b == libgb::arch::JoypadButton::pressed) {
     if (ticks_until_next_shift-- == 0) {
-      falling_piece.try_move_left();
+      if (!falling_piece.try_move_left()) {
+        if (!has_bumped) {
+          // Only bump the stage if we're tapping into it or we've had a long
+          // run-up
+          if (shift_delay_index == 0) {
+            scroll_speed_x = -side_bump_force;
+          } else if (shift_delay_index == delay_between_shifts.size() - 1) {
+            scroll_speed_x = -light_side_bump_force;
+          }
+        }
+        has_bumped = true;
+      }
       ticks_until_next_shift = delay_between_shifts[shift_delay_index];
       if (shift_delay_index != delay_between_shifts.size() - 1) {
         shift_delay_index += 1;
@@ -599,7 +628,18 @@ auto handle_gameplay_updates() -> void {
 
   if (arrows.right_or_a == libgb::arch::JoypadButton::pressed) {
     if (ticks_until_next_shift-- == 0) {
-      falling_piece.try_move_right();
+      if (!falling_piece.try_move_right()) {
+        if (!has_bumped) {
+          // Only bump the stage if we're tapping into it or we've had a long
+          // run-up
+          if (shift_delay_index == 0) {
+            scroll_speed_x = side_bump_force;
+          } else if (shift_delay_index == delay_between_shifts.size() - 1) {
+            scroll_speed_x = light_side_bump_force;
+          }
+        }
+        has_bumped = true;
+      }
       ticks_until_next_shift = delay_between_shifts[shift_delay_index];
       if (shift_delay_index != delay_between_shifts.size() - 1) {
         shift_delay_index += 1;
@@ -644,6 +684,7 @@ auto handle_gameplay_updates() -> void {
   if (not is_any_direction_pressed) {
     ticks_until_next_shift = 0;
     shift_delay_index = 0;
+    has_bumped = false;
   }
 
   falling_piece.update_hard_drop_positions();
@@ -651,6 +692,13 @@ auto handle_gameplay_updates() -> void {
   if (arrows.up_or_select == libgb::arch::JoypadButton::pressed) {
     if (not is_up_pressed) {
       // First frame of up arrow pressed... Hard-drop
+      uint8_t drop_amount =
+          falling_piece.m_position.y - falling_piece.m_hard_drop_y;
+      if (drop_amount > board_height - (board_height / 3)) {
+        scroll_speed_y = hard_drop_force;
+      } else if (drop_amount != 0) {
+        scroll_speed_y = light_hard_drop_force;
+      }
       falling_piece.hard_drop();
       piece_is_dropped = true;
     }
@@ -668,7 +716,7 @@ auto handle_gameplay_updates() -> void {
     piece_is_dropped = true;
   }
 
-  falling_piece.copy_position_into_underlying_sprite(scroll_y);
+  falling_piece.copy_position_into_underlying_sprite();
 
   if (piece_is_dropped) {
     falling_piece.copy_into_current_grid();
@@ -705,11 +753,28 @@ int main() {
   libgb::wait_for_interrupt<libgb::Interrupt::vblank>();
   libgb::wait_for_interrupt<libgb::Interrupt::vblank>();
   while (1) {
+    if (target_scroll_y != scroll_y) {
+      scroll_speed_y += libgb::Pixels{1};
+    } else {
+      scroll_speed_y = libgb::Pixels{0};
+    }
+
+    if (scroll_x == target_scroll_x) {
+      scroll_speed_x = libgb::Pixels{0};
+    } else if (scroll_x < target_scroll_x) {
+      scroll_speed_x = libgb::Pixels{1};
+    } else if (scroll_x > target_scroll_x) {
+      scroll_speed_x = -libgb::Pixels{1};
+    }
+
     if (lines_left_to_clear == 0) {
       handle_gameplay_updates();
     } else {
       handle_line_clear_animation();
     }
+
+    scroll_y += scroll_speed_y;
+    scroll_x += scroll_speed_x;
 
     // Commit to VRAM
     frame += 1;
@@ -722,6 +787,7 @@ int main() {
     } else {
       copy_grid_into_vram<1>();
     }
+    libgb::arch::set_background_viewport_x(-count_px(scroll_x));
     libgb::arch::set_background_viewport_y(libgb::count_px(scroll_y));
     libgb::copy_into_active_sprite_map(libgb::inactive_sprite_map);
   }
