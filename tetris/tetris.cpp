@@ -18,6 +18,7 @@
 #include <libgb/video.hpp>
 
 #include "piece_rotations.hpp"
+#include "shared.defs"
 
 #include <stdint.h>
 
@@ -28,8 +29,9 @@ static constexpr auto light_hard_drop_force = libgb::Pixels{(uint8_t)-1};
 static constexpr auto side_bump_force = libgb::Pixels{(uint8_t)-2};
 static constexpr auto light_side_bump_force = libgb::Pixels{(uint8_t)-1};
 
-[[maybe_unused]] static constexpr uint8_t board_width = 10;
-[[maybe_unused]] static constexpr uint8_t board_height = 16;
+[[maybe_unused]] static constexpr uint8_t board_width = BOARD_WIDTH;
+[[maybe_unused]] static constexpr uint8_t board_height = BOARD_HEIGHT;
+[[maybe_unused]] static constexpr uint8_t board_stride = BOARD_STRIDE;
 
 static constexpr auto board_screen_offset_x =
     (libgb::screen_dims.get_width() - libgb::to_px(libgb::Tiles{board_width})) /
@@ -229,8 +231,10 @@ static auto setup_lcd_controller() -> void {
 }
 
 struct CurrentGrid {
-  using Row = libgb::Array<libgb::TileIndex, board_width + 6>;
-  libgb::Array<Row, board_height> m_data;
+  static_assert(board_stride > board_width);
+  using Row = libgb::Array<libgb::TileIndex, board_stride>;
+  using GridData = libgb::Array<Row, board_height>;
+  GridData m_data;
   libgb::Array<uint8_t, board_height> m_tile_count;
 
   constexpr auto is_occupied_or_out_of_bounds(int8_t y, int8_t x) const
@@ -315,6 +319,10 @@ struct CurrentGrid {
 };
 
 constinit static CurrentGrid current_grid = {};
+
+// Defined directly in ASM... The compiler should eventually be good enough to
+// generate this tho.
+extern "C" void copy_grid_into_vram_map_0(CurrentGrid::GridData *grid);
 
 template <size_t parity> inline auto copy_grid_into_vram() -> void {
 #pragma clang loop unroll(full)
@@ -732,10 +740,17 @@ auto handle_gameplay_updates() -> void {
 }
 
 auto handle_line_clear_animation() -> void {
-  current_grid.delete_cleared_rows();
-  generate_falling_piece();
-  falling_piece.update_hard_drop_positions();
-  lines_left_to_clear = 0;
+  static uint8_t line_clear_animation_frame = 0;
+
+  if (line_clear_animation_frame == 4) {
+    current_grid.delete_cleared_rows();
+    generate_falling_piece();
+    falling_piece.update_hard_drop_positions();
+    lines_left_to_clear = 0;
+    line_clear_animation_frame = 0;
+  }
+
+  line_clear_animation_frame += 1;
 }
 
 int main() {
@@ -746,8 +761,6 @@ int main() {
   setup_scene(libgb::ScopedVRAMGuard{});
   falling_piece.set_underlying_sprite_color_index();
   generate_falling_piece();
-
-  static uint8_t frame = 0;
 
   // Main game loop
   libgb::wait_for_interrupt<libgb::Interrupt::vblank>();
@@ -777,16 +790,9 @@ int main() {
     scroll_x += scroll_speed_x;
 
     // Commit to VRAM
-    frame += 1;
     libgb::wait_for_interrupt<libgb::Interrupt::vblank>();
+    copy_grid_into_vram_map_0(&current_grid.m_data);
 
-    // We don't have enough vsync budget to copy the whole grid into vram. Lets
-    // do an interlaced copy instead.
-    if (frame % 2 == 0) {
-      copy_grid_into_vram<0>();
-    } else {
-      copy_grid_into_vram<1>();
-    }
     libgb::arch::set_background_viewport_x(-count_px(scroll_x));
     libgb::arch::set_background_viewport_y(libgb::count_px(scroll_y));
     libgb::copy_into_active_sprite_map(libgb::inactive_sprite_map);

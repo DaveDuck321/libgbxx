@@ -1,0 +1,3 @@
+#define BOARD_WIDTH 10
+#define BOARD_HEIGHT 16
+#define BOARD_STRIDE 16
