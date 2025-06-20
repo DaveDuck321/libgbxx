@@ -24,10 +24,11 @@
 
 using namespace libgb::tile_builder;
 
-static constexpr auto hard_drop_force = libgb::Pixels{(uint8_t)-2};
-static constexpr auto light_hard_drop_force = libgb::Pixels{(uint8_t)-1};
-static constexpr auto side_bump_force = libgb::Pixels{(uint8_t)-2};
-static constexpr auto light_side_bump_force = libgb::Pixels{(uint8_t)-1};
+namespace {
+static constexpr auto hard_drop_force = libgb::Pixels{(uint8_t)-3};
+static constexpr auto light_hard_drop_force = libgb::Pixels{(uint8_t)-2};
+static constexpr auto side_bump_force = libgb::Pixels{(uint8_t)-3};
+static constexpr auto light_side_bump_force = libgb::Pixels{(uint8_t)-2};
 
 [[maybe_unused]] static constexpr uint8_t board_width = BOARD_WIDTH;
 [[maybe_unused]] static constexpr uint8_t board_height = BOARD_HEIGHT;
@@ -61,11 +62,11 @@ static constexpr auto black_tile = build_tile({{
 
 static constexpr auto piece_tile = build_tile({{
     {C0, C1, C1, C1, C1, C1, C1, C1},
-    {C0, C1, C2, C2, C1, C1, C1, C1},
+    {C0, C1, C2, C2, C2, C1, C1, C1},
     {C0, C1, C2, C1, C1, C1, C1, C1},
     {C0, C1, C1, C1, C1, C1, C1, C1},
-    {C0, C1, C1, C1, C1, C1, C0, C1},
-    {C0, C1, C1, C1, C1, C0, C0, C1},
+    {C0, C1, C1, C1, C1, C1, C1, C1},
+    {C0, C1, C1, C1, C1, C1, C1, C1},
     {C0, C1, C1, C1, C1, C1, C1, C1},
     {C0, C0, C0, C0, C0, C0, C0, C0},
 }});
@@ -166,7 +167,7 @@ static constexpr auto scene_manager = [] {
   return libgb::SceneManager(registry, scene);
 }();
 
-static auto setup_lcd_controller() -> void {
+auto setup_lcd_controller() -> void {
   libgb::wait_for_interrupt<libgb::Interrupt::vblank>();
 
   libgb::arch::set_lcd_control(libgb::arch::LcdControl{
@@ -196,7 +197,7 @@ static auto setup_lcd_controller() -> void {
   });
 }
 
-[[gnu::noinline]] static auto setup_scene(libgb::ScopedVRAMGuard const &guard)
+[[gnu::noinline]] auto setup_scene(libgb::ScopedVRAMGuard const &guard)
     -> void {
   libgb::setup_scene_tile_mapping<scene_manager, 0>(guard);
   libgb::fill_tile_mapping<libgb::TileMap::map_0>(
@@ -752,6 +753,7 @@ auto handle_line_clear_animation() -> void {
 
   line_clear_animation_frame += 1;
 }
+} // namespace
 
 int main() {
   libgb::enable_interrupts();
