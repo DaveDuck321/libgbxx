@@ -517,7 +517,7 @@
     {
         "type": "register",
         "address": "0xff4a",
-        "name": "window_position_x_plus_7",
+        "name": "window_position_y",
         "layout": [
             {
                 "name": "value",
@@ -529,7 +529,7 @@
     {
         "type": "register",
         "address": "0xff4b",
-        "name": "window_position_y",
+        "name": "window_position_x_plus_7",
         "layout": [
             {
                 "name": "value",
