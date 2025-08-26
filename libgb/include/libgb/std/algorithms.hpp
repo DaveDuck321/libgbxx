@@ -3,16 +3,11 @@
 #include <libgb/std/array.hpp>
 #include <libgb/std/ranges.hpp>
 #include <libgb/std/traits.hpp>
+#include <libgb/std/utility.hpp>
 
 #include <stdint.h>
 
 namespace libgb {
-template <typename T> constexpr auto swap(T &lhs, T &rhs) -> void {
-  T tmp = lhs;
-  lhs = rhs;
-  rhs = tmp;
-}
-
 struct IsLessThan {
   template <typename T>
   constexpr auto operator()(T const &lhs, T const &rhs) const -> bool {
