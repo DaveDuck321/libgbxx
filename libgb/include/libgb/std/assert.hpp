@@ -1,7 +1,8 @@
 #pragma once
 
-namespace libgb {
+#include "traits.hpp"
 
+namespace libgb {
 constexpr auto assert(bool condition) -> void {
   if (not condition) {
     if consteval {
@@ -12,9 +13,12 @@ constexpr auto assert(bool condition) -> void {
   }
 }
 
-template <typename T> constexpr auto assert_unreachable() -> T {
+template <typename T = void> constexpr auto assert_unreachable() -> T {
   assert(false);
-  return T{};
+  if constexpr (is_same<T, void>) {
+    return;
+  } else {
+    return T{};
+  }
 }
-
 } // namespace libgb
