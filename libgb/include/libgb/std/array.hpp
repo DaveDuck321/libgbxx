@@ -11,6 +11,8 @@ template <typename T, size_t Size> struct Array {
   template <typename Self>
   [[nodiscard]] constexpr auto operator[](this Self &&self, size_t index)
       -> decltype(auto) {
+    // Avoid generating unnecessary sign extends if we're given a signed type
+    __builtin_assume(index < Size);
     return self.m_data[index];
   }
 
