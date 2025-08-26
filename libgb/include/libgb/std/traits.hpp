@@ -28,6 +28,12 @@ template <typename T> consteval auto declvalue() -> T {
   static_assert(false, "unreachable");
 }
 
+template <typename T> struct identity_t {
+  using Type = T;
+};
+
+template <typename T> using identity = identity_t<T>::Type;
+
 template <typename T> struct remove_cv_t {
   using Type = T;
 };

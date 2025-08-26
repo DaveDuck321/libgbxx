@@ -167,6 +167,18 @@ struct Scene {
     insert_tile(m_background_tiles, registry.register_background_tile(tile));
   }
 
+  template <typename Registry, size_t width, size_t height>
+  consteval auto register_background_tiles(
+      Registry &registry,
+      libgb::Array<libgb::Array<libgb::arch::Tile, width>, height> const &tiles)
+      -> void {
+    for (auto const &row : tiles) {
+      for (auto const &tile : row) {
+        register_background_tile(registry, tile);
+      }
+    }
+  }
+
   template <typename Registry>
   consteval auto register_sprite_tile(Registry &registry,
                                       arch::Tile const &tile) -> void {
@@ -245,6 +257,21 @@ template <size_t SceneCount> struct SceneManager {
                                        arch::Tile const &tile) const
       -> TileIndex {
     return m_scenes[scene_id].background_tile_index(m_tile_registry, tile);
+  }
+
+  template <size_t width, size_t height>
+  consteval auto background_tile_indicies(
+      size_t scene_id,
+      libgb::Array<libgb::Array<libgb::arch::Tile, width>, height> const &tiles)
+      const -> libgb::Array<libgb::Array<TileIndex, width>, height> {
+    libgb::Array<libgb::Array<TileIndex, width>, height> result = {};
+    for (auto const &[row_index, row] : enumerate(tiles)) {
+      for (auto const &[column_index, tile] : enumerate(row)) {
+        result[row_index][column_index] =
+            m_scenes[scene_id].background_tile_index(m_tile_registry, tile);
+      }
+    }
+    return result;
   }
 
   consteval auto sprite_tile_address(size_t scene_id,

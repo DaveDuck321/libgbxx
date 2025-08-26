@@ -16,14 +16,27 @@ static constexpr auto C1 = Color::id_1;
 static constexpr auto C2 = Color::id_2;
 static constexpr auto C3 = Color::id_3;
 
-consteval auto build_tile(TileColors colors) -> arch::Tile {
+consteval auto build_tile(TileColors colors, Color remap_0 = C0,
+                          Color remap_1 = C1, Color remap_2 = C2,
+                          Color remap_3 = C3) -> arch::Tile {
   libgb::arch::Tile tile = {};
   for (auto [row_index, colors] : enumerate(colors)) {
     uint8_t byte1 = 0;
     uint8_t byte2 = 0;
-    for (auto color : colors) {
+    for (auto color_before_remap : colors) {
       byte1 <<= 1;
       byte2 <<= 1;
+
+      Color color;
+      if (color_before_remap == C0) {
+        color = remap_0;
+      } else if (color_before_remap == C1) {
+        color = remap_1;
+      } else if (color_before_remap == C2) {
+        color = remap_2;
+      } else {
+        color = remap_3;
+      }
 
       byte1 |= to_underlying(color) & 1;
       byte2 |= (to_underlying(color) >> 1) & 1;

@@ -9,10 +9,6 @@ namespace libgb {
 enum class Pixels : uint8_t {};
 enum class Tiles : uint8_t {};
 
-constexpr auto count_px(Pixels pixels) -> uint8_t {
-  return to_underlying(pixels);
-}
-
 constexpr auto to_px(Pixels measure) -> Pixels { return measure; }
 constexpr auto to_px(Tiles measure) -> Pixels {
   return Pixels{static_cast<uint8_t>(8 * +measure)};
@@ -20,6 +16,15 @@ constexpr auto to_px(Tiles measure) -> Pixels {
 
 template <typename T>
 concept is_measure_unit = requires(T t) { to_px(t); };
+
+template <is_measure_unit T>
+constexpr auto count_as(identity<T> unit) -> uint8_t {
+  return to_underlying(unit);
+}
+
+constexpr auto count_px(Pixels pixels) -> uint8_t {
+  return count_as<Pixels>(pixels);
+}
 
 template <is_measure_unit Unit>
 constexpr auto operator+(Unit lhs, Unit rhs) -> Unit {

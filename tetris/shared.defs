@@ -1,3 +1,21 @@
+#ifndef SHARED_DEFS
+#define SHARED_DEFS
+
 #define BOARD_WIDTH 10
 #define BOARD_HEIGHT 16
 #define BOARD_STRIDE 16
+
+#ifdef __cplusplus
+
+#include <libgb/dimensions.hpp>
+#include <stdint.h>
+
+static constexpr auto board_width = libgb::Tiles{BOARD_WIDTH};
+static constexpr auto board_height = libgb::Tiles{BOARD_HEIGHT};
+static constexpr auto board_stride = libgb::Tiles{BOARD_STRIDE};
+
+static constexpr auto board_screen_offset_x =
+    (libgb::screen_dims.get_width() - libgb::to_px(board_width)) / 2;
+
+#endif
+#endif

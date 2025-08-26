@@ -19,6 +19,7 @@
 
 #include "piece_rotations.hpp"
 #include "shared.defs"
+#include "stars.hpp"
 
 #include <stdint.h>
 
@@ -29,14 +30,6 @@ static constexpr auto hard_drop_force = libgb::Pixels{(uint8_t)-3};
 static constexpr auto light_hard_drop_force = libgb::Pixels{(uint8_t)-2};
 static constexpr auto side_bump_force = libgb::Pixels{(uint8_t)-3};
 static constexpr auto light_side_bump_force = libgb::Pixels{(uint8_t)-2};
-
-[[maybe_unused]] static constexpr uint8_t board_width = BOARD_WIDTH;
-[[maybe_unused]] static constexpr uint8_t board_height = BOARD_HEIGHT;
-[[maybe_unused]] static constexpr uint8_t board_stride = BOARD_STRIDE;
-
-static constexpr auto board_screen_offset_x =
-    (libgb::screen_dims.get_width() - libgb::to_px(libgb::Tiles{board_width})) /
-    2;
 
 static constexpr auto target_scroll_y = libgb::Pixels{(uint8_t)-8};
 
@@ -164,6 +157,9 @@ static constexpr auto scene_manager = [] {
   scene.register_background_tile(registry, top_right_join_tile);
   scene.register_background_tile(registry, top_left_join_tile);
   scene.register_background_tile(registry, bottom_row_tile);
+
+  register_star_sprites(registry, scene);
+
   return libgb::SceneManager(registry, scene);
 }();
 
@@ -206,7 +202,7 @@ auto setup_lcd_controller() -> void {
   // Side boarders
   for (libgb::Tiles row = {}; row < libgb::Tiles{board_height}; ++row) {
     libgb::set_tile_mapping<libgb::TileMap::map_0>(
-        row, libgb::Tiles{board_width},
+        row, board_width,
         scene_manager.background_tile_index(0, right_of_column_tile));
 
     libgb::set_tile_mapping<libgb::TileMap::map_0>(
@@ -215,7 +211,7 @@ auto setup_lcd_controller() -> void {
   }
 
   // Bottom boarder
-  for (libgb::Tiles column = {}; column < libgb::Tiles{board_width}; ++column) {
+  for (libgb::Tiles column = {}; column < board_width; ++column) {
     libgb::set_tile_mapping<libgb::TileMap::map_0>(
         libgb::Tiles{board_height}, column,
         scene_manager.background_tile_index(0, bottom_row_tile));
@@ -227,49 +223,57 @@ auto setup_lcd_controller() -> void {
       scene_manager.background_tile_index(0, top_right_join_tile));
 
   libgb::set_tile_mapping<libgb::TileMap::map_0>(
-      libgb::Tiles{board_height}, libgb::Tiles{board_width},
+      libgb::Tiles{board_height}, board_width,
       scene_manager.background_tile_index(0, top_left_join_tile));
 }
 
 struct CurrentGrid {
   static_assert(board_stride > board_width);
-  using Row = libgb::Array<libgb::TileIndex, board_stride>;
-  using GridData = libgb::Array<Row, board_height>;
+  using Row = libgb::Array<libgb::TileIndex,
+                           libgb::count_as<libgb::Tiles>(board_stride)>;
+  using GridData =
+      libgb::Array<Row, libgb::count_as<libgb::Tiles>(board_height)>;
   GridData m_data;
-  libgb::Array<uint8_t, board_height> m_tile_count;
+  libgb::Array<uint8_t, libgb::count_as<libgb::Tiles>(board_height)>
+      m_tile_count;
 
   constexpr auto is_occupied_or_out_of_bounds(int8_t y, int8_t x) const
       -> bool {
     if (y < 0) {
       return true;
     }
-    if ((uint8_t)x >= board_width) {
+    if ((uint8_t)x >= libgb::count_as<libgb::Tiles>(board_width)) {
       return true;
     }
-    if (y >= board_height) {
+    if (y >= libgb::count_as<libgb::Tiles>(board_height)) {
       // Allow free movement above the stage
       return false;
     }
-    return !is_empty(y, x);
+    return !is_empty(libgb::Tiles{static_cast<uint8_t>(y)},
+                     libgb::Tiles{static_cast<uint8_t>(x)});
   }
 
-  constexpr auto is_empty(uint8_t y, uint8_t x) const -> bool {
-    return m_data[y][x] == scene_manager.background_tile_index(0, black_tile);
+  constexpr auto is_empty(libgb::Tiles y, libgb::Tiles x) const -> bool {
+    return m_data[libgb::count_as<libgb::Tiles>(y)]
+                 [libgb::count_as<libgb::Tiles>(x)] ==
+           scene_manager.background_tile_index(0, black_tile);
   }
 
-  constexpr auto set_full(uint8_t y, uint8_t x) -> void {
-    m_data[y][x] = scene_manager.background_tile_index(0, piece_tile);
-    m_tile_count[y] += 1;
+  constexpr auto set_full(libgb::Tiles y, libgb::Tiles x) -> void {
+    m_data[libgb::count_as<libgb::Tiles>(y)][libgb::count_as<libgb::Tiles>(x)] =
+        scene_manager.background_tile_index(0, piece_tile);
+    m_tile_count[libgb::count_as<libgb::Tiles>(y)] += 1;
   }
 
   constexpr auto get_hard_drop_position(uint8_t current_height,
                                         uint8_t column) const -> uint8_t {
-    if (current_height >= board_height) {
-      current_height = board_height - 1;
+    if (current_height >= libgb::count_as<libgb::Tiles>(board_height)) {
+      current_height = libgb::count_as<libgb::Tiles>(board_height) - 1;
     }
 
-    for (int8_t row = (int8_t)current_height; row >= 0; row -= 1) {
-      if (not is_empty(row, column)) {
+    for (int8_t row = static_cast<int8_t>(current_height); row >= 0; row -= 1) {
+      if (not is_empty(libgb::Tiles{static_cast<uint8_t>(row)},
+                       libgb::Tiles{column})) {
         return row + 1;
       }
     }
@@ -279,12 +283,13 @@ struct CurrentGrid {
   constexpr auto mark_rows_as_complete() -> uint8_t {
     uint8_t completed_rows = 0;
     for (auto [y, tile_count] : libgb::enumerate(m_tile_count)) {
-      if (tile_count == board_width) {
+      if (tile_count == libgb::count_as<libgb::Tiles>(board_width)) {
         completed_rows += 1;
         libgb::memset((uint8_t *)&m_data[y],
                       libgb::to_underlying(scene_manager.background_tile_index(
                           0, completed_piece_tile)),
-                      sizeof(libgb::TileIndex) * board_width);
+                      sizeof(libgb::TileIndex) *
+                          libgb::count_as<libgb::Tiles>(board_width));
       }
     }
     return completed_rows;
@@ -293,26 +298,28 @@ struct CurrentGrid {
   constexpr auto delete_cleared_rows() -> void {
     uint8_t old_index = 0;
     uint8_t new_index = 0;
-    while (old_index != board_height) {
-      if (m_tile_count[old_index] == board_width) {
+    while (libgb::Tiles{old_index} != board_height) {
+      if (libgb::Tiles{m_tile_count[old_index]} == board_width) {
         old_index += 1;
         continue;
       }
 
       libgb::memcpy((uint8_t *)&m_data[new_index],
                     (uint8_t *)&m_data[old_index],
-                    sizeof(libgb::TileIndex) * board_width);
+                    sizeof(libgb::TileIndex) *
+                        libgb::count_as<libgb::Tiles>(board_width));
       m_tile_count[new_index] = m_tile_count[old_index];
       old_index += 1;
       new_index += 1;
     }
 
     // Fill out the remaining empty rows
-    while (new_index != board_height) {
+    while (libgb::Tiles{new_index} != board_height) {
       libgb::memset((uint8_t *)&m_data[new_index],
                     libgb::to_underlying(
                         scene_manager.background_tile_index(0, black_tile)),
-                    sizeof(libgb::TileIndex) * board_width);
+                    sizeof(libgb::TileIndex) *
+                        libgb::count_as<libgb::Tiles>(board_width));
       m_tile_count[new_index] = 0;
       new_index += 1;
     }
@@ -327,14 +334,17 @@ extern "C" void copy_grid_into_vram_map_0(CurrentGrid::GridData *grid);
 
 template <size_t parity> inline auto copy_grid_into_vram() -> void {
 #pragma clang loop unroll(full)
-  for (uint8_t row = 0; row < board_height; row += 1) {
+  for (uint8_t row = 0; row < libgb::count_as<libgb::Tiles>(board_height);
+       row += 1) {
     if (row % 2 != parity) {
       continue;
     }
 
-    auto const tile_y = libgb::Tiles{(uint8_t)(board_height - row - 1)};
+    auto const tile_y = libgb::Tiles{static_cast<uint8_t>(
+        libgb::count_as<libgb::Tiles>(board_height) - row - 1)};
 #pragma clang loop unroll(full)
-    for (uint8_t column = 0; column < board_width; column += 1) {
+    for (uint8_t column = 0;
+         column < libgb::count_as<libgb::Tiles>(board_width); column += 1) {
       auto const tile_x = libgb::Tiles{column};
       libgb::set_tile_mapping<libgb::TileMap::map_0>(
           tile_y, tile_x, current_grid.m_data[row][column]);
@@ -507,8 +517,9 @@ struct FallingPiece {
     size_t index = 0;
     for (auto [x_offset, y_offset] : current_offsets) {
       auto x_tile = libgb::Tiles{(uint8_t)(m_position.x + x_offset)};
-      auto y_tile =
-          libgb::Tiles{(uint8_t)(board_height - (m_position.y + y_offset) - 1)};
+      auto y_tile = libgb::Tiles{
+          static_cast<uint8_t>(libgb::count_as<libgb::Tiles>(board_height) -
+                               (m_position.y + y_offset) - 1)};
 
       auto *piece_sprite = underlying_piece_sprites[index];
       auto *hard_drop_sprite = underlying_hard_drop_sprites[index];
@@ -519,7 +530,8 @@ struct FallingPiece {
           to_px(y_tile) - scroll_y + libgb::sprite_screen_offset.get_height());
 
       auto hard_drop_y_tile = libgb::Tiles{
-          (uint8_t)(board_height - (m_hard_drop_y + y_offset) - 1)};
+          static_cast<uint8_t>(libgb::count_as<libgb::Tiles>(board_height) -
+                               (m_hard_drop_y + y_offset) - 1)};
 
       hard_drop_sprite->pos_x = piece_sprite->pos_x;
       hard_drop_sprite->pos_y =
@@ -536,7 +548,8 @@ struct FallingPiece {
     for (auto [x_offset, y_offset] : current_offsets) {
       auto x = m_position.x + x_offset;
       auto y = m_position.y + y_offset;
-      current_grid.set_full(y, x);
+      current_grid.set_full(libgb::Tiles{static_cast<uint8_t>(y)},
+                            libgb::Tiles{static_cast<uint8_t>(x)});
     }
   }
 };
@@ -544,10 +557,7 @@ struct FallingPiece {
 static FallingPiece falling_piece = {};
 
 static auto generate_falling_piece() -> void {
-  auto piece_type = libgb::uniform_random_byte() % 8;
-  while (piece_type == 7) {
-    piece_type = libgb::uniform_random_byte() % 8;
-  }
+  auto piece_type = libgb::uniform_in_range<0, 6>();
 
   switch (piece_type) {
   default:
@@ -586,7 +596,7 @@ static auto generate_falling_piece() -> void {
     break;
   }
 
-  int8_t lower_y = board_height - 2;
+  int8_t lower_y = libgb::count_as<libgb::Tiles>(board_height) - 2;
   falling_piece.m_position = {3, lower_y};
   falling_piece.m_rotation = 0;
 }
@@ -606,7 +616,7 @@ auto handle_gameplay_updates() -> void {
   static uint8_t shift_delay_index = 0;
   static uint8_t frames_since_drop = 0;
   static uint8_t frames_between_drop = 40;
-  static constexpr uint8_t frames_before_lock = 20;
+  static constexpr uint8_t frames_before_lock = 40;
 
   bool is_any_direction_pressed = false;
 
@@ -703,7 +713,8 @@ auto handle_gameplay_updates() -> void {
       // First frame of up arrow pressed... Hard-drop
       uint8_t drop_amount =
           falling_piece.m_position.y - falling_piece.m_hard_drop_y;
-      if (drop_amount > board_height - (board_height / 3)) {
+      if (drop_amount >
+          libgb::count_as<libgb::Tiles>(board_height - (board_height / 3))) {
         scroll_speed_y = hard_drop_force;
       } else if (drop_amount != 0) {
         scroll_speed_y = light_hard_drop_force;
@@ -764,9 +775,12 @@ int main() {
   falling_piece.set_underlying_sprite_color_index();
   generate_falling_piece();
 
+  init_stars<scene_manager>();
+
   // Main game loop
   libgb::wait_for_interrupt<libgb::Interrupt::vblank>();
   libgb::wait_for_interrupt<libgb::Interrupt::vblank>();
+  static uint8_t frame_count = 0;
   while (1) {
     if (target_scroll_y != scroll_y) {
       scroll_speed_y += libgb::Pixels{1};
@@ -790,6 +804,11 @@ int main() {
 
     scroll_y += scroll_speed_y;
     scroll_x += scroll_speed_x;
+
+    (void)frame_count;
+    animate_stars<scene_manager>(frame_count);
+
+    frame_count += 1;
 
     // Commit to VRAM
     libgb::wait_for_interrupt<libgb::Interrupt::vblank>();
