@@ -199,6 +199,10 @@ struct Scene {
                                        arch::Tile const &tile) const
       -> TileIndex {
     auto target_register_index = registry.find_background_tile(tile);
+    if (target_register_index == TileRegistryIndex::invalid_index) {
+      throw 0;
+    }
+
     for (auto [tile_index, registry_index] :
          enumerate<uint8_t>(m_background_tiles)) {
       if (registry_index == target_register_index) {
@@ -220,6 +224,10 @@ struct Scene {
   consteval auto sprite_tile_index(Registry const &registry,
                                    arch::Tile const &tile) const -> TileIndex {
     auto target_register_index = registry.find_sprite_tile(tile);
+    if (target_register_index == TileRegistryIndex::invalid_index) {
+      throw 0;
+    }
+
     for (auto [tile_index, registry_index] :
          enumerate<uint8_t>(m_sprite_tiles)) {
       if (registry_index == target_register_index) {
