@@ -60,24 +60,24 @@ static constexpr auto little_star_tile_2 = build_tile({{
 }});
 
 static constexpr auto big_star_tile_1 = build_tile({{
-    {C3, C0, C3, C0, C3, C0, C0, C0},
-    {C0, C3, C3, C3, C0, C0, C0, C0},
-    {C3, C3, C0, C3, C3, C0, C0, C0},
-    {C0, C3, C3, C3, C0, C0, C0, C0},
-    {C3, C0, C3, C0, C3, C0, C0, C0},
-    {C0, C0, C0, C0, C0, C0, C0, C0},
-    {C0, C0, C0, C0, C0, C0, C0, C0},
+    {C3, C0, C0, C3, C0, C0, C0, C0},
+    {C0, C0, C0, C3, C0, C0, C0, C0},
+    {C0, C0, C0, C3, C3, C0, C0, C0},
+    {C3, C3, C3, C0, C3, C3, C3, C0},
+    {C0, C0, C3, C3, C3, C0, C0, C0},
+    {C0, C0, C0, C3, C0, C0, C0, C0},
+    {C0, C0, C0, C3, C0, C0, C3, C0},
     {C0, C0, C0, C0, C0, C0, C0, C0},
 }});
 
 static constexpr auto big_star_tile_2 = build_tile({{
-    {C3, C0, C3, C0, C3, C0, C0, C0},
-    {C0, C3, C3, C3, C0, C0, C0, C0},
-    {C3, C3, C3, C3, C3, C0, C0, C0},
-    {C0, C3, C3, C3, C0, C0, C0, C0},
-    {C3, C0, C3, C0, C3, C0, C0, C0},
-    {C0, C0, C0, C0, C0, C0, C0, C0},
-    {C0, C0, C0, C0, C0, C0, C0, C0},
+    {C0, C0, C0, C3, C0, C0, C0, C0},
+    {C0, C0, C0, C3, C0, C0, C0, C0},
+    {C0, C0, C0, C3, C3, C0, C0, C0},
+    {C3, C3, C3, C0, C3, C3, C3, C0},
+    {C0, C0, C3, C3, C3, C0, C0, C0},
+    {C0, C0, C0, C3, C0, C0, C0, C0},
+    {C0, C0, C0, C3, C0, C0, C0, C0},
     {C0, C0, C0, C0, C0, C0, C0, C0},
 }});
 
@@ -104,9 +104,9 @@ static constexpr auto very_big_star_tile_2 = build_tile({{
 }});
 
 static constexpr auto star_count = 32;
-static constexpr auto very_big_star_count = 1;
-static constexpr auto big_star_count = 2;
-static constexpr auto little_star_count = 12;
+static constexpr auto very_big_star_count = 0;
+static constexpr auto big_star_count = 5;
+static constexpr auto little_star_count = 10;
 static_assert(very_big_star_count + big_star_count + little_star_count <
               star_count);
 
@@ -143,8 +143,9 @@ static auto valid_star_tile_positions = libgb::to_array<[]() consteval {
 }()>();
 
 static libgb::Array<uint8_t, star_count> star_show_order;
-static uint8_t additional_stars_to_show = 0;
+static uint8_t additional_stars_to_show = star_count - 1;
 static bool is_hiding_all_stars = false;
+static uint8_t star_hide_mask = 0;
 static uint8_t star_hide_index = 0;
 static uint8_t star_show_index = 0;
 static uint8_t delay_frames_for_last_star = 5;
@@ -168,18 +169,28 @@ template <auto scene_manager> static auto init_stars() -> void {
   libgb::shuffle(star_show_order);
 }
 
-static auto hide_all_stars() -> void {
-  is_hiding_all_stars += true;
+static auto hide_all_stars(bool is_fast) -> void {
+  is_hiding_all_stars = true;
   additional_stars_to_show = 0;
+  if (is_fast) {
+    star_hide_mask = 2 - 1;
+  } else {
+    star_hide_mask = 8 - 1;
+  }
 }
 
 template <auto scene_manager>
-static auto show_additional_stars(uint8_t count) -> void {
+static auto show_additional_stars(uint8_t count) -> bool {
   additional_stars_to_show += count;
+  return star_show_index + additional_stars_to_show >= star_count;
 }
 
 template <auto scene_manager> static auto animate_show_next_star() -> void {
   additional_stars_to_show -= 1;
+  if (star_show_index >= star_show_order.size()) {
+    return;
+  }
+
   auto sprite_index = star_show_order[star_show_index++];
   auto tile = [](uint8_t index) {
     if (index < very_big_star_count) {
@@ -210,25 +221,29 @@ struct StarAnimation {
 static libgb::FixedDequeue<StarAnimation, 8> star_animation_worklist = {};
 
 template <auto scene_manager>
-static auto animate_stars(uint8_t frame_count) -> void {
-
+static auto animate_stars(uint8_t frame_count) -> bool {
   if (additional_stars_to_show != 0) {
     if (frame_count % 16 == 0) {
       animate_show_next_star<scene_manager>();
     }
-  }
-
-  if (is_hiding_all_stars) [[unlikely]] {
-    if (frame_count % 8 == 0) {
+  } else if (is_hiding_all_stars) [[unlikely]] {
+    if ((frame_count & star_hide_mask) == 0) {
       if (star_hide_index != star_show_index) {
-        if (star_hide_index + 1 != star_show_index ||
-            delay_frames_for_last_star == 0) {
+        auto is_last_star = (star_hide_index + 1 == star_show_index);
+        if (not is_last_star || delay_frames_for_last_star == 0) {
           auto sprite_index = star_show_order[star_hide_index++];
           libgb::inactive_sprite_map[8 + sprite_index].index =
               scene_manager.sprite_tile_index(0, black_tile);
         } else {
           delay_frames_for_last_star -= 1;
         }
+      } else {
+        // Reset mutable state
+        delay_frames_for_last_star = 5;
+        star_hide_index = 0;
+        star_show_index = 0;
+        is_hiding_all_stars = false;
+        return true;
       }
     }
   }
@@ -285,8 +300,8 @@ static auto animate_stars(uint8_t frame_count) -> void {
       break;
     case big_frame_1:
       star_to_twinkle.index = big_frame_2;
-      star_animation_worklist.push_back({
-          .frame_to_finish = static_cast<uint8_t>(frame_count + 8),
+      star_animation_worklist.push_front({
+          .frame_to_finish = static_cast<uint8_t>(frame_count + 2),
           .sprite_index = star_to_twinkle_index,
           .target_tile = big_frame_1,
       });
@@ -301,4 +316,5 @@ static auto animate_stars(uint8_t frame_count) -> void {
       break;
     }
   }
+  return false;
 }

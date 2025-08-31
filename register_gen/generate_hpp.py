@@ -410,7 +410,7 @@ def generate_register_headers(
     seen_addresses: set[int] = set()
     for register in generated.registers:
         if register.address in seen_addresses:
-            raise ValueError(f"Saw duplicate register for {seen_addresses:x}")
+            raise ValueError(f"Saw duplicate register for {hex(register.address)}")
         seen_addresses.add(register.address)
 
     # 5) End namespace

@@ -229,6 +229,120 @@ auto setup_lcd_controller() -> void {
       scene_manager.background_tile_index(0, top_left_join_tile));
 }
 
+[[gnu::noinline]] auto setup_audio() -> void {
+  libgb::arch::set_audio_master_control_audio_on_off(true);
+  libgb::arch::set_sound_panning({
+      .channel_1_right = true,
+      .channel_2_right = false,
+      .channel_3_right = false,
+      .channel_4_right = true,
+      .channel_1_left = true,
+      .channel_2_left = false,
+      .channel_3_left = false,
+      .channel_4_left = true,
+  });
+  libgb::arch::set_master_volume_panning({
+      .right_volume = 3,
+      .vin_right = false,
+      .left_volume = 3,
+      .vin_left = false,
+  });
+}
+
+static auto play_hard_drop_sound() -> void {
+  libgb::arch::set_channel_1_sweep({
+      .step = 7,
+      .direction = libgb::arch::SweepDirection::decreases,
+      .pace = 1,
+      .padding_0 = 0,
+  });
+  libgb::arch::set_channel_1_length_duty({
+      .initial_timer_length = 0,
+      .wave_duty = 2,
+  });
+  libgb::arch::set_channel_1_volume_envelope({
+      .pace = 1,
+      .envelope_direction = libgb::arch::SweepDirection::decreases,
+      .initial_volume = 10,
+  });
+  libgb::arch::set_channel_1_period_low(libgb::uniform_random_byte());
+  libgb::arch::set_channel_1_period_high_control({
+      .period = 6,
+      .padding_0 = 0,
+      .length_enable = false,
+      .trigger = true,
+  });
+}
+
+static auto play_line_clear_sound(uint8_t lines_cleared) -> void {
+  libgb::arch::set_channel_1_sweep({
+      .step = 7,
+      .direction = libgb::arch::SweepDirection::decreases,
+      .pace = 1,
+      .padding_0 = 0,
+  });
+  libgb::arch::set_channel_1_length_duty({
+      .initial_timer_length = 0,
+      .wave_duty = 2,
+  });
+  libgb::arch::set_channel_1_volume_envelope({
+      .pace = 3,
+      .envelope_direction = libgb::arch::SweepDirection::decreases,
+      .initial_volume = 15,
+  });
+  libgb::arch::set_channel_1_period_low(200);
+  libgb::arch::set_channel_1_period_high_control({
+      .period = static_cast<uint8_t>(lines_cleared + 2),
+      .padding_0 = 0,
+      .length_enable = false,
+      .trigger = true,
+  });
+}
+
+[[maybe_unused]] static auto play_game_over_sound() -> void {
+  libgb::arch::set_channel_4_length({
+      .initial_timer_length = 0,
+      .padding_0 = 0,
+  });
+  libgb::arch::set_channel_4_volume_envelope({
+      .pace = 4,
+      .envelope_direction = libgb::arch::SweepDirection::decreases,
+      .initial_volume = 15,
+  });
+  libgb::arch::set_channel_4_frequency_randomness({
+      .clock_divider = 1,
+      .lfsr_width = libgb::arch::LFSRWidth::long_lfsr,
+      .clock_shift = 8,
+  });
+  libgb::arch::set_channel_4_control({
+      .padding_0 = 0,
+      .length_enable = false,
+      .trigger = true,
+  });
+}
+
+[[gnu::always_inline]] static auto play_wall_bump_sound() -> void {
+  libgb::arch::set_channel_4_length({
+      .initial_timer_length = 0,
+      .padding_0 = 0,
+  });
+  libgb::arch::set_channel_4_volume_envelope({
+      .pace = 1,
+      .envelope_direction = libgb::arch::SweepDirection::decreases,
+      .initial_volume = 11,
+  });
+  libgb::arch::set_channel_4_frequency_randomness({
+      .clock_divider = 1,
+      .lfsr_width = libgb::arch::LFSRWidth::short_lfsr,
+      .clock_shift = 7,
+  });
+  libgb::arch::set_channel_4_control({
+      .padding_0 = 0,
+      .length_enable = false,
+      .trigger = true,
+  });
+}
+
 struct CurrentGrid {
   static_assert(board_stride > board_width);
   using Row = libgb::Array<libgb::TileIndex,
@@ -280,6 +394,24 @@ struct CurrentGrid {
       }
     }
     return 0;
+  }
+
+  constexpr auto fill_row(uint8_t row) -> void {
+    libgb::memset(
+        (uint8_t *)&m_data[row],
+        libgb::to_underlying(
+            scene_manager.background_tile_index(0, completed_piece_tile)),
+        sizeof(libgb::TileIndex) * libgb::count_as<libgb::Tiles>(board_width));
+    m_tile_count[row] = libgb::count_as<libgb::Tiles>(board_width);
+  }
+
+  constexpr auto clear_row(uint8_t row) -> void {
+    libgb::memset((uint8_t *)&m_data[row],
+                  libgb::to_underlying(
+                      scene_manager.background_tile_index(0, black_tile)),
+                  sizeof(libgb::TileIndex) *
+                      libgb::count_as<libgb::Tiles>(board_width));
+    m_tile_count[row] = 0;
   }
 
   constexpr auto mark_rows_as_complete() -> uint8_t {
@@ -401,6 +533,10 @@ struct FallingPiece {
     underlying_piece_sprites[1]->index = piece_tile_index;
     underlying_piece_sprites[2]->index = piece_tile_index;
     underlying_piece_sprites[3]->index = piece_tile_index;
+    underlying_hard_drop_sprites[0]->index = piece_tile_index;
+    underlying_hard_drop_sprites[1]->index = piece_tile_index;
+    underlying_hard_drop_sprites[2]->index = piece_tile_index;
+    underlying_hard_drop_sprites[3]->index = piece_tile_index;
   }
 
   constexpr auto is_position_legal(Coordinate position, uint8_t rotation)
@@ -486,8 +622,9 @@ struct FallingPiece {
     return false;
   }
 
-  constexpr auto hard_drop() -> void {
+  auto hard_drop() -> void {
     m_position = {m_position.x, m_hard_drop_y};
+    play_hard_drop_sound();
   }
 
   constexpr auto update_hard_drop_positions() -> void {
@@ -566,6 +703,8 @@ struct FallingPiece {
 };
 
 static bool is_game_over = false;
+static bool is_level_finished = false;
+static bool is_animating_refresh = false;
 static FallingPiece falling_piece = {};
 
 static auto generate_falling_piece() -> void {
@@ -617,11 +756,13 @@ static auto generate_falling_piece() -> void {
                                           falling_piece.m_rotation)) {
     is_game_over = true;
     falling_piece.render_piece_as_dead();
-    hide_all_stars();
+    play_game_over_sound();
+    hide_all_stars(false);
   }
 }
 
 static uint8_t lines_left_to_clear = 0;
+static uint8_t current_level = 0;
 
 auto handle_gameplay_updates() -> void {
   static constexpr libgb::Array<uint8_t, 6> delay_between_shifts = {5, 2, 2,
@@ -635,7 +776,8 @@ auto handle_gameplay_updates() -> void {
   static uint8_t ticks_until_next_shift = 0;
   static uint8_t shift_delay_index = 0;
   static uint8_t frames_since_drop = 0;
-  static uint8_t frames_between_drop = 40;
+  static libgb::Array<uint8_t, 8> frames_between_drop = {40, 10, 5, 2,
+                                                         2,  1,  1, 1};
   static constexpr uint8_t frames_before_lock = 40;
 
   bool is_any_direction_pressed = false;
@@ -651,8 +793,10 @@ auto handle_gameplay_updates() -> void {
           // run-up
           if (shift_delay_index == 0) {
             scroll_speed_x = -side_bump_force;
+            play_wall_bump_sound();
           } else if (shift_delay_index == delay_between_shifts.size() - 1) {
             scroll_speed_x = -light_side_bump_force;
+            play_wall_bump_sound();
           }
         }
         has_bumped = true;
@@ -673,8 +817,10 @@ auto handle_gameplay_updates() -> void {
           // run-up
           if (shift_delay_index == 0) {
             scroll_speed_x = side_bump_force;
+            play_wall_bump_sound();
           } else if (shift_delay_index == delay_between_shifts.size() - 1) {
             scroll_speed_x = light_side_bump_force;
+            play_wall_bump_sound();
           }
         }
         has_bumped = true;
@@ -747,7 +893,7 @@ auto handle_gameplay_updates() -> void {
     is_up_pressed = false;
   }
 
-  if (++frames_since_drop > frames_between_drop) {
+  if (++frames_since_drop > frames_between_drop[current_level]) {
     falling_piece.try_move_down();
     frames_since_drop = 0;
   }
@@ -764,7 +910,10 @@ auto handle_gameplay_updates() -> void {
     if (lines_left_to_clear == 0) {
       generate_falling_piece();
     } else {
-      show_additional_stars<scene_manager>(lines_left_to_clear);
+      play_line_clear_sound(lines_left_to_clear);
+      if (show_additional_stars<scene_manager>(2 * lines_left_to_clear)) {
+        is_level_finished = true;
+      }
       falling_piece.hide_until_next_update();
     }
     frames_since_drop = 0;
@@ -785,6 +934,38 @@ auto handle_line_clear_animation() -> void {
 
   line_clear_animation_frame += 1;
 }
+
+auto handle_level_pass_animation() -> void {
+  static uint8_t current_row = 0;
+  if (current_row < libgb::count_as<libgb::Tiles>(board_height)) {
+    current_grid.fill_row(current_row++);
+    if (current_row == libgb::count_as<libgb::Tiles>(board_height)) {
+      current_row = 0;
+      hide_all_stars(true);
+    }
+  }
+}
+
+auto handle_clear_board_animation() -> void {
+  static uint8_t current_row = libgb::count_as<libgb::Tiles>(board_height) - 1;
+  if (current_row != 255) {
+    current_grid.clear_row(current_row--);
+    return;
+  }
+
+  is_animating_refresh = false;
+  if (is_level_finished) {
+    current_level += 1;
+    is_level_finished = false;
+    current_grid.delete_cleared_rows();
+  }
+  if (is_game_over) {
+    current_level = 0;
+    is_game_over = false;
+  }
+  current_row = libgb::count_as<libgb::Tiles>(board_height) - 1;
+  init_stars<scene_manager>();
+}
 } // namespace
 
 int main() {
@@ -793,6 +974,8 @@ int main() {
   libgb::clear_sprite_map(libgb::inactive_sprite_map);
   libgb::copy_into_active_sprite_map(libgb::inactive_sprite_map);
   setup_scene(libgb::ScopedVRAMGuard{});
+  setup_audio();
+  play_line_clear_sound(4);
   falling_piece.set_underlying_sprite_color_index();
   generate_falling_piece();
 
@@ -817,7 +1000,11 @@ int main() {
       scroll_speed_x = -libgb::Pixels{1};
     }
 
-    if (is_game_over) {
+    if (is_animating_refresh) {
+      handle_clear_board_animation();
+    } else if (is_level_finished) {
+      handle_level_pass_animation();
+    } else if (is_game_over) {
       falling_piece.copy_position_into_underlying_sprite();
     } else {
       if (lines_left_to_clear == 0) {
@@ -831,7 +1018,14 @@ int main() {
     scroll_x += scroll_speed_x;
 
     (void)frame_count;
-    animate_stars<scene_manager>(frame_count);
+    bool did_finish_animation = animate_stars<scene_manager>(frame_count);
+    if (did_finish_animation) {
+      if (is_level_finished) {
+        play_line_clear_sound(4);
+      }
+      falling_piece.set_underlying_sprite_color_index();
+      is_animating_refresh = true;
+    }
 
     frame_count += 1;
 

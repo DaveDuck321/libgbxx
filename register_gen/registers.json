@@ -652,5 +652,346 @@
                 "enum": "PaletteColor"
             }
         ]
+    },
+    {
+        "type": "register",
+        "address": "0xff26",
+        "name": "audio_master_control",
+        "comment": "NR52",
+        "layout": [
+            {
+                "name": "channel_1_on",
+                "width": 1,
+                "type": "volatile_read_only"
+            },
+            {
+                "name": "channel_2_on",
+                "width": 1,
+                "type": "volatile_read_only"
+            },
+            {
+                "name": "channel_3_on",
+                "width": 1,
+                "type": "volatile_read_only"
+            },
+            {
+                "name": "channel_4_on",
+                "width": 1,
+                "type": "volatile_read_only"
+            },
+            {
+                "type": "padding",
+                "width": 3
+            },
+            {
+                "name": "audio_on_off",
+                "width": 1,
+                "type": "non_volatile_read_write"
+            }
+        ]
+    },
+    {
+        "type": "register",
+        "address": "0xff25",
+        "name": "sound_panning",
+        "comment": "NR51",
+        "layout": [
+            {
+                "name": "channel_1_right",
+                "width": 1,
+                "type": "non_volatile_read_write"
+            },
+            {
+                "name": "channel_2_right",
+                "width": 1,
+                "type": "non_volatile_read_write"
+            },
+            {
+                "name": "channel_3_right",
+                "width": 1,
+                "type": "non_volatile_read_write"
+            },
+            {
+                "name": "channel_4_right",
+                "width": 1,
+                "type": "non_volatile_read_write"
+            },
+            {
+                "name": "channel_1_left",
+                "width": 1,
+                "type": "non_volatile_read_write"
+            },
+            {
+                "name": "channel_2_left",
+                "width": 1,
+                "type": "non_volatile_read_write"
+            },
+            {
+                "name": "channel_3_left",
+                "width": 1,
+                "type": "non_volatile_read_write"
+            },
+            {
+                "name": "channel_4_left",
+                "width": 1,
+                "type": "non_volatile_read_write"
+            }
+        ]
+    },
+    {
+        "type": "register",
+        "address": "0xff24",
+        "name": "master_volume_panning",
+        "comment": "NR50",
+        "layout": [
+            {
+                "name": "right_volume",
+                "width": 3,
+                "type": "non_volatile_read_write"
+            },
+            {
+                "name": "vin_right",
+                "width": 1,
+                "type": "non_volatile_read_write"
+            },
+            {
+                "name": "left_volume",
+                "width": 3,
+                "type": "non_volatile_read_write"
+            },
+            {
+                "name": "vin_left",
+                "width": 1,
+                "type": "non_volatile_read_write"
+            }
+        ]
+    },
+    {
+        "type": "enum",
+        "name": "SweepDirection",
+        "width": 8,
+        "values": [
+            {
+                "name": "decreases",
+                "value": 0
+            },
+            {
+                "name": "increases",
+                "value": 1
+            }
+        ]
+    },
+    {
+        "type": "register",
+        "address": "0xff10",
+        "name": "channel_1_sweep",
+        "comment": "NR10",
+        "layout": [
+            {
+                "name": "step",
+                "width": 3,
+                "type": "non_volatile_read_write"
+            },
+            {
+                "name": "direction",
+                "width": 1,
+                "type": "non_volatile_read_write",
+                "enum": "SweepDirection"
+            },
+            {
+                "name": "pace",
+                "width": 3,
+                "type": "non_volatile_read_write"
+            },
+            {
+                "type": "padding",
+                "width": 1
+            }
+        ]
+    },
+    {
+        "type": "register",
+        "address": "0xff11",
+        "name": "channel_1_length_duty",
+        "comment": "NR11",
+        "layout": [
+            {
+                "name": "initial_timer_length",
+                "width": 6,
+                "type": "non_volatile_read_write"
+            },
+            {
+                "name": "wave_duty",
+                "type": "volatile_read_write",
+                "width": 2
+            }
+        ]
+    },
+    {
+        "type": "register",
+        "address": "0xff12",
+        "name": "channel_1_volume_envelope",
+        "comment": "NR12",
+        "layout": [
+            {
+                "name": "pace",
+                "width": 3,
+                "type": "non_volatile_read_write"
+            },
+            {
+                "name": "envelope_direction",
+                "width": 1,
+                "type": "non_volatile_read_write",
+                "enum": "SweepDirection"
+            },
+            {
+                "name": "initial_volume",
+                "width": 4,
+                "type": "non_volatile_read_write"
+            }
+        ]
+    },
+    {
+        "type": "register",
+        "address": "0xff13",
+        "name": "channel_1_period_low",
+        "comment": "NR13",
+        "layout": [
+            {
+                "name": "value",
+                "width": 8,
+                "type": "write_only"
+            }
+        ]
+    },
+    {
+        "type": "register",
+        "address": "0xff14",
+        "name": "channel_1_period_high_control",
+        "comment": "NR14",
+        "layout": [
+            {
+                "name": "period",
+                "width": 3,
+                "type": "write_only"
+            },
+            {
+                "type": "padding",
+                "width": 3
+            },
+            {
+                "name": "length_enable",
+                "width": 1,
+                "type": "non_volatile_read_write"
+            },
+            {
+                "name": "trigger",
+                "width": 1,
+                "type": "write_only"
+            }
+        ]
+    },
+    {
+        "type": "register",
+        "address": "0xff20",
+        "name": "channel_4_length",
+        "comment": "NR41",
+        "layout": [
+            {
+                "name": "initial_timer_length",
+                "width": 6,
+                "type": "non_volatile_read_write"
+            },
+            {
+                "type":"padding",
+                "width": 2
+            }
+        ]
+    },
+    {
+        "type": "register",
+        "address": "0xff21",
+        "name": "channel_4_volume_envelope",
+        "comment": "NR42",
+        "layout": [
+            {
+                "name": "pace",
+                "width": 3,
+                "type": "non_volatile_read_write"
+            },
+            {
+                "name": "envelope_direction",
+                "width": 1,
+                "type": "non_volatile_read_write",
+                "enum": "SweepDirection"
+            },
+            {
+                "name": "initial_volume",
+                "width": 4,
+                "type": "non_volatile_read_write"
+            }
+        ]
+    },
+    {
+        "type": "enum",
+        "name": "LFSRWidth",
+        "width": 8,
+        "values": [
+            {
+                "name": "long_lfsr",
+                "value": 0
+            },
+            {
+                "name": "short_lfsr",
+                "value": 1
+            }
+        ]
+    },
+    {
+        "type": "register",
+        "address": "0xff22",
+        "name": "channel_4_frequency_randomness",
+        "comment": "NR43",
+        "layout": [
+            {
+                "name": "clock_divider",
+                "width": 3,
+                "type": "non_volatile_read_write"
+            },
+            {
+                "name": "lfsr_width",
+                "width": 1,
+                "type": "non_volatile_read_write",
+                "enum": "LFSRWidth"
+
+            },
+            {
+                "name": "clock_shift",
+                "width": 4,
+                "type": "non_volatile_read_write"
+            }
+        ]
+    },
+    {
+        "type": "register",
+        "address": "0xff23",
+        "name": "channel_4_control",
+        "comment": "NR44",
+        "layout": [
+            {
+                "type": "padding",
+                "width": 6
+            },
+            {
+                "name": "length_enable",
+                "width": 1,
+                "type": "non_volatile_read_write"
+            },
+            {
+                "name": "trigger",
+                "width": 1,
+                "type": "write_only"
+            }
+        ]
     }
 ]
