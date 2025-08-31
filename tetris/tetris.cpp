@@ -242,9 +242,9 @@ auto setup_lcd_controller() -> void {
       .channel_4_left = true,
   });
   libgb::arch::set_master_volume_panning({
-      .right_volume = 3,
+      .right_volume = 7,
       .vin_right = false,
-      .left_volume = 3,
+      .left_volume = 7,
       .vin_left = false,
   });
 }
