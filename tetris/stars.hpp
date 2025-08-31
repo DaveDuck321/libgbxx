@@ -143,7 +143,7 @@ static auto valid_star_tile_positions = libgb::to_array<[]() consteval {
 }()>();
 
 static libgb::Array<uint8_t, star_count> star_show_order;
-static uint8_t additional_stars_to_show = star_count - 1;
+static uint8_t additional_stars_to_show = 0;
 static bool is_hiding_all_stars = false;
 static uint8_t star_hide_mask = 0;
 static uint8_t star_hide_index = 0;

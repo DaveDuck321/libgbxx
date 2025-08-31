@@ -343,6 +343,28 @@ static auto play_line_clear_sound(uint8_t lines_cleared) -> void {
   });
 }
 
+[[gnu::always_inline]] static auto play_soft_drop_sound() -> void {
+  libgb::arch::set_channel_4_length({
+      .initial_timer_length = 0,
+      .padding_0 = 0,
+  });
+  libgb::arch::set_channel_4_volume_envelope({
+      .pace = 1,
+      .envelope_direction = libgb::arch::SweepDirection::decreases,
+      .initial_volume = 7,
+  });
+  libgb::arch::set_channel_4_frequency_randomness({
+      .clock_divider = 1,
+      .lfsr_width = libgb::arch::LFSRWidth::long_lfsr,
+      .clock_shift = 2,
+  });
+  libgb::arch::set_channel_4_control({
+      .padding_0 = 0,
+      .length_enable = false,
+      .trigger = true,
+  });
+}
+
 struct CurrentGrid {
   static_assert(board_stride > board_width);
   using Row = libgb::Array<libgb::TileIndex,
@@ -905,6 +927,9 @@ auto handle_gameplay_updates() -> void {
   falling_piece.copy_position_into_underlying_sprite();
 
   if (piece_is_dropped) {
+    if (not is_up_pressed) {
+      play_soft_drop_sound();
+    }
     falling_piece.copy_into_current_grid();
     lines_left_to_clear = current_grid.mark_rows_as_complete();
     if (lines_left_to_clear == 0) {
