@@ -53,4 +53,18 @@ template <TileMap map>
 inline auto set_tile_mapping(Tiles y, Tiles x, TileIndex tile) -> void {
   arch::tile_maps->maps[+map].data[+y][+x] = tile;
 }
+
+template <TileMap map, size_t width, size_t height>
+[[gnu::always_inline]] auto set_large_tile_mapping(
+    Tiles y, Tiles x,
+    libgb::Array<libgb::Array<TileIndex, width>, height> const &tiles) -> void {
+#pragma clang loop unroll(full)
+  for (auto const &[row_index, row] : enumerate<uint8_t>(tiles)) {
+#pragma clang loop unroll(full)
+    for (auto const &[column_index, tile_index] : enumerate<uint8_t>(row)) {
+      set_tile_mapping<map>(y + libgb::Tiles{row_index},
+                            x + libgb::Tiles{column_index}, tile_index);
+    }
+  }
+}
 } // namespace libgb

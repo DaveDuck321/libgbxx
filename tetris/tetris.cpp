@@ -13,6 +13,7 @@
 #include <libgb/std/memcpy.hpp>
 #include <libgb/std/random.hpp>
 #include <libgb/std/ranges.hpp>
+#include <libgb/std/saturating_int.hpp>
 #include <libgb/tile_allocation.hpp>
 #include <libgb/tile_builder.hpp>
 #include <libgb/video.hpp>
@@ -150,6 +151,7 @@ static constexpr auto scene_manager = [] {
   scene.register_background_tile(registry, completed_piece_tile);
   scene.register_sprite_tile(registry, piece_tile);
   scene.register_sprite_tile(registry, hard_drop_tile);
+  scene.register_sprite_tile(registry, completed_piece_tile);
 
   // Play area boarder
   scene.register_background_tile(registry, left_of_column_tile);
@@ -392,6 +394,15 @@ struct FallingPiece {
     underlying_hard_drop_sprites[3]->index = hard_drop_tile_index;
   }
 
+  auto render_piece_as_dead() -> void {
+    auto piece_tile_index =
+        scene_manager.sprite_tile_index(0, completed_piece_tile);
+    underlying_piece_sprites[0]->index = piece_tile_index;
+    underlying_piece_sprites[1]->index = piece_tile_index;
+    underlying_piece_sprites[2]->index = piece_tile_index;
+    underlying_piece_sprites[3]->index = piece_tile_index;
+  }
+
   constexpr auto is_position_legal(Coordinate position, uint8_t rotation)
       -> bool {
     auto const &current_offsets = (*m_piece_rotations)[rotation];
@@ -554,6 +565,7 @@ struct FallingPiece {
   }
 };
 
+static bool is_game_over = false;
 static FallingPiece falling_piece = {};
 
 static auto generate_falling_piece() -> void {
@@ -599,6 +611,14 @@ static auto generate_falling_piece() -> void {
   int8_t lower_y = libgb::count_as<libgb::Tiles>(board_height) - 2;
   falling_piece.m_position = {3, lower_y};
   falling_piece.m_rotation = 0;
+
+  // Are we dead?
+  if (not falling_piece.is_position_legal(falling_piece.m_position,
+                                          falling_piece.m_rotation)) {
+    is_game_over = true;
+    falling_piece.render_piece_as_dead();
+    hide_all_stars();
+  }
 }
 
 static uint8_t lines_left_to_clear = 0;
@@ -744,6 +764,7 @@ auto handle_gameplay_updates() -> void {
     if (lines_left_to_clear == 0) {
       generate_falling_piece();
     } else {
+      show_additional_stars<scene_manager>(lines_left_to_clear);
       falling_piece.hide_until_next_update();
     }
     frames_since_drop = 0;
@@ -796,10 +817,14 @@ int main() {
       scroll_speed_x = -libgb::Pixels{1};
     }
 
-    if (lines_left_to_clear == 0) {
-      handle_gameplay_updates();
+    if (is_game_over) {
+      falling_piece.copy_position_into_underlying_sprite();
     } else {
-      handle_line_clear_animation();
+      if (lines_left_to_clear == 0) {
+        handle_gameplay_updates();
+      } else {
+        handle_line_clear_animation();
+      }
     }
 
     scroll_y += scroll_speed_y;

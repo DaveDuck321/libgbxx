@@ -33,6 +33,10 @@ public:
   }
   constexpr auto size() const -> size_t { return m_error_msg_size; }
 };
+
+struct A {};
+struct B {};
+struct C {};
 } // namespace libgb::testing
 
 #define PASS()                                                                 \

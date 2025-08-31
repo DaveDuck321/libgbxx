@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stddef.h>
+#include <stdint.h>
 
 namespace libgb {
 using nullptr_t = decltype(nullptr);
@@ -50,7 +51,7 @@ template <typename T> struct remove_cv_t<T const volatile> {
   using Type = T;
 };
 
-template <typename T> using remove_cv = remove_cv_t<T>;
+template <typename T> using remove_cv = remove_cv_t<T>::Type;
 
 template <typename T> struct remove_ref_t {
   using Type = T;
@@ -66,8 +67,59 @@ template <typename T> struct remove_ref_t<T &&> {
 
 template <typename T> using remove_ref = remove_ref_t<T>::Type;
 
+template <typename T> using remove_cv_ref = remove_cv<remove_ref<T>>;
+
 template <typename T>
 using element_type = remove_ref<decltype(*declvalue<T>().begin())>;
+
+template <typename T> struct is_signed_integer_t {
+  static constexpr auto value = false;
+};
+
+template <> struct is_signed_integer_t<int8_t> {
+  static constexpr auto value = true;
+};
+
+template <> struct is_signed_integer_t<int16_t> {
+  static constexpr auto value = true;
+};
+
+template <> struct is_signed_integer_t<int32_t> {
+  static constexpr auto value = true;
+};
+
+template <> struct is_signed_integer_t<int64_t> {
+  static constexpr auto value = true;
+};
+
+template <typename T>
+concept is_signed_integer = is_signed_integer_t<T>::value;
+
+template <typename T> struct is_unsigned_integer_t {
+  static constexpr auto value = false;
+};
+
+template <> struct is_unsigned_integer_t<uint8_t> {
+  static constexpr auto value = true;
+};
+
+template <> struct is_unsigned_integer_t<uint16_t> {
+  static constexpr auto value = true;
+};
+
+template <> struct is_unsigned_integer_t<uint32_t> {
+  static constexpr auto value = true;
+};
+
+template <> struct is_unsigned_integer_t<uint64_t> {
+  static constexpr auto value = true;
+};
+
+template <typename T>
+concept is_unsigned_integer = is_unsigned_integer_t<T>::value;
+
+template <typename T>
+concept is_integral = is_signed_integer<T> || is_unsigned_integer<T>;
 
 template <typename T>
 concept is_iterator = requires(T t) {

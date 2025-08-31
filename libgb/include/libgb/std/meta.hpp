@@ -10,8 +10,4 @@ template <auto V> struct Constant {
   constexpr Constant() {};
   constexpr operator Type() const { return Value; }
 };
-
-template <typename T> struct Identity {
-  using Type = T;
-};
 } // namespace libgb

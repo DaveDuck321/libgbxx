@@ -7,6 +7,13 @@ template <typename T> constexpr auto move(T &&t) -> remove_ref<T> && {
   return static_cast<remove_ref<T> &&>(t);
 }
 
+template <typename T> constexpr auto forward(remove_ref<T> &t) -> T && {
+  return static_cast<T &&>(t);
+}
+template <typename T> constexpr auto forward(remove_ref<T> &&t) -> T && {
+  return static_cast<T &&>(t);
+}
+
 template <typename T> constexpr auto swap(T &lhs, T &rhs) -> void {
   if (&lhs == &rhs) {
     return;
