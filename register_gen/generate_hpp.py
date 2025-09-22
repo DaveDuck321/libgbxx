@@ -17,6 +17,10 @@ def indent(line: str, amount: int = 1) -> str:
     return " " * (amount * 4) + line
 
 
+def indent_all(lines: list[str], amount: int = 1) -> list[str]:
+    return [indent(line, amount) for line in lines]
+
+
 def to_struct_name(name: str) -> str:
     return "".join(part.title() for part in name.split("_"))
 
@@ -240,6 +244,12 @@ class GeneratedRegister:
             )
             lines.append("}")
 
+        must_preserve_fields = [
+            field
+            for field in self.fields
+            if not isinstance(field, Padding) and field.can_write
+        ]
+
         for field in self.fields:
             if isinstance(field, Padding):
                 continue
@@ -261,14 +271,29 @@ class GeneratedRegister:
                 lines.append("}")
 
             if field.can_write:
+                can_clobber_others = len(must_preserve_fields) == 1
+                if can_clobber_others:
+                    assert must_preserve_fields[0] == field
+
                 lines.append("")
                 lines.append(
                     f"inline auto set_{self.name}_{field.name}({field.this_type.name} value) -> void {{"
                 )
-                dereference = (
-                    f"(({whole_register_type} volatile*){self.name}_addr)->{field.name}"
-                )
-                lines.append(indent(f"{dereference} = value;"))
+
+                if can_clobber_others:
+                    lines.extend(
+                        indent_all(
+                            [
+                                "// Special-case: clobber the other fields since they are read-only",
+                                f"{whole_register_type} to_write = {{}};",
+                                f"to_write.{field.name} = value;",
+                                f"set_{self.name}(to_write);",
+                            ]
+                        )
+                    )
+                else:
+                    dereference = f"(({whole_register_type} volatile*){self.name}_addr)->{field.name}"
+                    lines.append(indent(f"{dereference} = value;"))
                 lines.append("}")
 
         return lines
