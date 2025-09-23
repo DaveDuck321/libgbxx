@@ -10,7 +10,7 @@ namespace libgb {
 // should only be used to update inactive tile data tilemap is already being
 // rendered.
 struct ScopedVRAMGuard {
-  static auto on_oam_callback() -> void {
+  [[gnu::gb_interrupt_cc]] static auto on_oam_callback() -> void {
     arch::set_interrupt_enable_lcd(false);
     enable_interrupts();
     wait_for_interrupt<libgb::Interrupt::vblank>();

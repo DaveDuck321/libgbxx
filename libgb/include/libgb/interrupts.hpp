@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 namespace libgb {
-using InterruptCallback = void (*)(void);
+using InterruptCallback = __attribute__((gb_interrupt_cc)) void (*)(void);
 enum class Interrupt : uint8_t { vblank, lcd, timer, serial, joypad };
 enum class LCDInterruptCondition : uint8_t {
   h_blank,
@@ -144,7 +144,8 @@ template <Interrupt interrupt> inline auto wait_for_interrupt() -> void {
   static volatile bool has_seen_interrupt;
   has_seen_interrupt = false;
 
-  InterruptScope<interrupt> handler([] { has_seen_interrupt = true; });
+  InterruptScope<interrupt> handler(
+      [] [[gnu::gb_interrupt_cc]] () { has_seen_interrupt = true; });
   while (not has_seen_interrupt) {
     halt();
   }
