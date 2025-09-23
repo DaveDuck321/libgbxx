@@ -6,6 +6,7 @@
 #include <libgb/arch/tile_map.hpp>
 #include <libgb/dimensions.hpp>
 #include <libgb/format.hpp>
+#include <libgb/input.hpp>
 #include <libgb/interrupts.hpp>
 #include <libgb/std/array.hpp>
 #include <libgb/std/assert.hpp>
@@ -614,10 +615,7 @@ auto handle_gameplay_updates() -> void {
 
   bool is_any_direction_pressed = false;
 
-  libgb::arch::set_joypad_select(libgb::arch::JoypadInputSelect::dpad);
-  auto arrows = libgb::arch::get_joypad();
-
-  if (arrows.left_or_b == libgb::arch::JoypadButton::pressed) {
+  if (libgb::is_pressed(libgb::Input::left)) {
     if (ticks_until_next_shift-- == 0) {
       falling_piece.try_move_left();
       ticks_until_next_shift = delay_between_shifts[shift_delay_index];
@@ -628,7 +626,7 @@ auto handle_gameplay_updates() -> void {
     is_any_direction_pressed = true;
   }
 
-  if (arrows.right_or_a == libgb::arch::JoypadButton::pressed) {
+  if (libgb::is_pressed(libgb::Input::right)) {
     if (ticks_until_next_shift-- == 0) {
       falling_piece.try_move_right();
       ticks_until_next_shift = delay_between_shifts[shift_delay_index];
@@ -644,7 +642,7 @@ auto handle_gameplay_updates() -> void {
     shift_delay_index = 0;
   }
 
-  if (arrows.down_or_start == libgb::arch::JoypadButton::pressed) {
+  if (libgb::is_pressed(libgb::Input::down)) {
     if (ticks_until_next_shift-- == 0) {
       falling_piece.try_move_down();
 
@@ -655,7 +653,7 @@ auto handle_gameplay_updates() -> void {
     is_any_direction_pressed = true;
   }
 
-  if (arrows.up_or_select == libgb::arch::JoypadButton::pressed) {
+  if (libgb::is_pressed(libgb::Input::up)) {
     if (not is_up_pressed) {
       piece_is_dropped = true;
     }
@@ -664,9 +662,7 @@ auto handle_gameplay_updates() -> void {
     is_up_pressed = false;
   }
 
-  libgb::arch::set_joypad_select(libgb::arch::JoypadInputSelect::buttons);
-  auto buttons = libgb::arch::get_joypad();
-  if (buttons.right_or_a == libgb::arch::JoypadButton::pressed) {
+  if (libgb::is_pressed(libgb::Input::a)) {
     if (not is_a_pressed) {
       falling_piece.try_rotate_clockwise();
       is_a_pressed = true;
@@ -675,7 +671,7 @@ auto handle_gameplay_updates() -> void {
     is_a_pressed = false;
   }
 
-  if (buttons.left_or_b == libgb::arch::JoypadButton::pressed) {
+  if (libgb::is_pressed(libgb::Input::b)) {
     if (not is_b_pressed) {
       falling_piece.try_rotate_counter_clockwise();
       is_b_pressed = true;
@@ -710,6 +706,7 @@ int main() {
   libgb::wait_for_interrupt<libgb::Interrupt::vblank>();
   libgb::wait_for_interrupt<libgb::Interrupt::vblank>();
   while (1) {
+    libgb::read_inputs();
     if (is_resolving_clear) {
       handle_piece_clear();
     } else {
