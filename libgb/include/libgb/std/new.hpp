@@ -13,14 +13,23 @@ namespace std {
 // called from std::construct_at... We need to wrap our helper in the std
 // namespace.
 template <class T, class... Args>
-constexpr T *construct_at(T *location, Args &&...args) {
+constexpr auto construct_at(T *location, Args &&...args) -> T * {
   return new (location) T(::libgb::forward<Args>(args)...);
+}
+
+template <class T, class... Args>
+constexpr auto destroy_at(T *location) -> void {
+  location->~T();
 }
 } // namespace std
 
 namespace libgb {
 template <class T, class... Args>
-constexpr T *construct_at(T *location, Args &&...args) {
+constexpr auto construct_at(T *location, Args &&...args) -> T * {
   return std::construct_at(location, forward<Args>(args)...);
+}
+
+template <class T> constexpr auto destroy_at(T *location) -> void {
+  return std::destroy_at(location);
 }
 } // namespace libgb

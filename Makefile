@@ -48,6 +48,7 @@ DR_MARIO_DEPS = $(DR_MARIO_OBJECTS:.o=.d)
 TEST_OBJECTS = \
 	$(TEST_BUILD_DIR)/memcpy.o \
 	$(TEST_BUILD_DIR)/print.o \
+	$(TEST_BUILD_DIR)/state_machine.o \
 	$(TEST_BUILD_DIR)/tile_allocation.o \
 	$(TEST_BUILD_DIR)/vram_guard.o \
 
