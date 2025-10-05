@@ -39,11 +39,10 @@
 
 
 
-// TODO: the compile should be good enough to generate this routine (and it almost is)
+// TODO: the compiler should be good enough to generate this routine without the
+// assembly (and it almost is)
 .global copy_grid_into_vram_map_0
-copy_grid_into_vram_map_0:        # @copy_grid_into_vram_map_0(hl = void *grid)
-    ld b, h
-    ld c, l
+copy_grid_into_vram_map_0:        # @copy_grid_into_vram_map_0(bc = void *grid)
     COPY_ROW(0)
     COPY_ROW(1)
     COPY_ROW(2)
