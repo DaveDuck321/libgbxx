@@ -138,4 +138,45 @@ concept is_collection = is_iterable<T> && requires(T t) {
   (void)t.size();
   (void)t[0];
 };
+
+template <typename T> struct is_type_list_t {
+  static constexpr auto value = false;
+};
+
+template <template <typename...> typename List, typename... Ts>
+struct is_type_list_t<List<Ts...>> {
+  static constexpr auto value = true;
+};
+
+template <typename T>
+concept is_type_list = is_type_list_t<T>::value;
+
+template <typename T> struct is_stateless_t {
+  struct is_stateless_detector : T {
+    char _;
+  };
+  static constexpr auto value = sizeof(is_stateless_detector) == sizeof(char);
+};
+
+template <typename T>
+concept is_stateless = is_stateless_t<T>::value;
+
+template <typename T>
+concept is_statefull = not is_stateless<T>;
+
+template <bool condition, typename OnTrue, typename OnFalse> struct if_c_t;
+
+template <typename OnTrue, typename OnFalse>
+struct if_c_t<true, OnTrue, OnFalse> {
+  using Type = OnTrue;
+};
+
+template <typename OnTrue, typename OnFalse>
+struct if_c_t<false, OnTrue, OnFalse> {
+  using Type = OnFalse;
+};
+
+template <bool condition, typename OnTrue, typename OnFalse>
+using if_c = if_c_t<condition, OnTrue, OnFalse>::Type;
+
 } // namespace libgb
