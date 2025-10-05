@@ -19,10 +19,10 @@ template <typename T, size_t capacity> struct FixedDequeue {
 
     self.m_end_index += 1;
     self.m_end_index %= capacity;
-    // TODO: fix the memcpy assert here
-    // assert(self.m_start_index != self.m_end_index);
-    // assert(self.m_start_index < capacity);
-    // assert(self.m_end_index < capacity);
+
+    assert(self.m_start_index != self.m_end_index);
+    assert(self.m_start_index < capacity);
+    assert(self.m_end_index < capacity);
   }
 
   template <typename Self>
