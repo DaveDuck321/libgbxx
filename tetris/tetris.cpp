@@ -985,6 +985,7 @@ auto handle_clear_board_animation() -> void {
   }
   current_row = libgb::count_as<libgb::Tiles>(board_height) - 1;
   init_stars<scene_manager>();
+  libgb::wait_for_interrupt<libgb::Interrupt::vblank>();
 }
 } // namespace
 
