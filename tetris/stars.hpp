@@ -212,7 +212,7 @@ template <auto scene_manager> static auto animate_show_next_star() -> void {
   libgb::inactive_sprite_map[8 + sprite_index].index = tile;
 }
 
-struct StarAnimation {
+struct [[gnu::aligned(2)]] StarAnimation {
   uint8_t frame_to_finish;
   uint8_t sprite_index;
   libgb::TileIndex target_tile;
