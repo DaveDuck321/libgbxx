@@ -24,7 +24,6 @@ LIBGB_OBJECTS = \
 	$(LIBGB_BUILD_DIR)/format.o \
 	$(LIBGB_BUILD_DIR)/input.o \
 	$(LIBGB_BUILD_DIR)/int_handlers.o \
-	$(LIBGB_BUILD_DIR)/interrupts.o \
 	$(LIBGB_BUILD_DIR)/memcpy.o \
 	$(LIBGB_BUILD_DIR)/meta.o \
 	$(LIBGB_BUILD_DIR)/random.o \

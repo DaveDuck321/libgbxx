@@ -15,13 +15,21 @@ enum class LCDInterruptCondition : uint8_t {
 };
 
 namespace impl {
-extern volatile InterruptCallback vblank_interrupt_callback;
-extern volatile InterruptCallback lcd_status_interrupt_callback;
-extern volatile InterruptCallback timer_interrupt_callback;
-extern volatile InterruptCallback serial_interrupt_callback;
-extern volatile InterruptCallback input_interrupt_callback;
-
-auto default_interrupt_callback() -> void;
+extern "C" {
+// Defined in int_handlers.S
+// These callbacks are packed into HRAM with arbitrary alignment.
+// Under-the-hood, these point to text relocations in a jump-table.
+extern volatile InterruptCallback __libgb_vblank_interrupt_callback
+    [[gnu::aligned(1)]];
+extern volatile InterruptCallback __libgb_lcd_status_interrupt_callback
+    [[gnu::aligned(1)]];
+extern volatile InterruptCallback __libgb_timer_interrupt_callback
+    [[gnu::aligned(1)]];
+extern volatile InterruptCallback __libgb_serial_interrupt_callback
+    [[gnu::aligned(1)]];
+extern volatile InterruptCallback __libgb_input_interrupt_callback
+    [[gnu::aligned(1)]];
+}
 } // namespace impl
 
 inline auto enable_interrupts() -> void { asm volatile("ei" ::: "memory"); }
@@ -29,27 +37,27 @@ inline auto disable_interrupts() -> void { asm volatile("di" ::: "memory"); }
 inline auto halt() -> void { asm volatile("halt"); }
 
 inline auto enable_vblank_interrupt(InterruptCallback callback) -> void {
-  impl::vblank_interrupt_callback = callback;
+  impl::__libgb_vblank_interrupt_callback = callback;
   arch::set_interrupt_enable_vblank(true);
 }
 
 inline auto enable_lcd_status_interrupt(InterruptCallback callback) -> void {
-  impl::lcd_status_interrupt_callback = callback;
+  impl::__libgb_lcd_status_interrupt_callback = callback;
   arch::set_interrupt_enable_lcd(true);
 }
 
 inline auto enable_timer_interrupt(InterruptCallback callback) -> void {
-  impl::timer_interrupt_callback = callback;
+  impl::__libgb_timer_interrupt_callback = callback;
   arch::set_interrupt_enable_timer(true);
 }
 
 inline auto enable_serial_interrupt(InterruptCallback callback) -> void {
-  impl::serial_interrupt_callback = callback;
+  impl::__libgb_serial_interrupt_callback = callback;
   arch::set_interrupt_enable_serial(true);
 }
 
 inline auto enable_joypad_interrupt(InterruptCallback callback) -> void {
-  impl::input_interrupt_callback = callback;
+  impl::__libgb_input_interrupt_callback = callback;
   arch::set_interrupt_enable_joypad(true);
 }
 

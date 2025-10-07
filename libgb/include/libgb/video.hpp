@@ -28,7 +28,7 @@ struct ScopedVRAMGuard {
 
     // Wait for a vblank to clear any stale interrupts
     wait_for_interrupt<libgb::Interrupt::vblank>();
-    impl::lcd_status_interrupt_callback = on_oam_callback;
+    impl::__libgb_lcd_status_interrupt_callback = on_oam_callback;
     on_oam_callback();
   }
 
