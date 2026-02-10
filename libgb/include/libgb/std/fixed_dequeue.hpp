@@ -20,18 +20,18 @@ template <typename T, size_t capacity> struct FixedDequeue {
     self.m_end_index += 1;
     self.m_end_index %= capacity;
 
-    assert(self.m_start_index != self.m_end_index);
-    assert(self.m_start_index < capacity);
-    assert(self.m_end_index < capacity);
+    assume(self.m_start_index != self.m_end_index);
+    assume(self.m_start_index < capacity);
+    assume(self.m_end_index < capacity);
   }
 
   template <typename Self>
   constexpr auto push_front(this Self &&self, T const &element) -> void {
     self.m_start_index -= 1;
     self.m_start_index %= capacity;
-    // assert(self.m_start_index != self.m_end_index);
-    // assert(self.m_start_index < capacity);
-    // assert(self.m_end_index < capacity);
+    assume(self.m_start_index != self.m_end_index);
+    assume(self.m_start_index < capacity);
+    assume(self.m_end_index < capacity);
 
     self.m_data[self.m_start_index] = element;
   }

@@ -42,7 +42,7 @@ auto check_result() -> int {
 int main() {
   asm volatile("debugtrap" ::: "memory");
   libgb::memset(small.data(), 1, small.size());
-  // CHECK: Cycles since last: 86
+  // CHECK: Cycles since last: 83
   asm volatile("debugtrap" ::: "memory");
 
   libgb::memset(medium.data(), 2, medium.size());
