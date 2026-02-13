@@ -6,6 +6,7 @@
 #include <libgb/arch/tile_map.hpp>
 #include <libgb/dimensions.hpp>
 #include <libgb/format.hpp>
+#include <libgb/gameloop.hpp>
 #include <libgb/input.hpp>
 #include <libgb/interrupts.hpp>
 #include <libgb/std/array.hpp>
@@ -985,9 +986,59 @@ auto handle_clear_board_animation() -> void {
   }
   current_row = libgb::count_as<libgb::Tiles>(board_height) - 1;
   init_stars<scene_manager>();
-  libgb::wait_for_interrupt<libgb::Interrupt::vblank>();
 }
 } // namespace
+
+void on_tick() {
+  if (target_scroll_y != scroll_y) {
+    scroll_speed_y += libgb::Pixels{1};
+  } else {
+    scroll_speed_y = libgb::Pixels{0};
+  }
+
+  if (scroll_x == target_scroll_x) {
+    scroll_speed_x = libgb::Pixels{0};
+  } else if (scroll_x < target_scroll_x) {
+    scroll_speed_x = libgb::Pixels{1};
+  } else if (scroll_x > target_scroll_x) {
+    scroll_speed_x = -libgb::Pixels{1};
+  }
+
+  if (is_animating_refresh) {
+    handle_clear_board_animation();
+  } else if (is_level_finished) {
+    handle_level_pass_animation();
+  } else if (is_game_over) {
+    falling_piece.copy_position_into_underlying_sprite();
+  } else {
+    if (lines_left_to_clear == 0) {
+      handle_gameplay_updates();
+    } else {
+      handle_line_clear_animation();
+    }
+  }
+
+  scroll_y += scroll_speed_y;
+  scroll_x += scroll_speed_x;
+
+  bool did_finish_animation =
+      animate_stars<scene_manager>(libgb::gameloop::tick_count());
+  if (did_finish_animation) {
+    if (is_level_finished) {
+      play_line_clear_sound(4);
+    }
+    falling_piece.set_underlying_sprite_color_index();
+    is_animating_refresh = true;
+  }
+}
+
+void on_vblank() {
+  copy_grid_into_vram_map_0(&current_grid.m_data);
+
+  libgb::arch::set_background_viewport_x(-count_px(scroll_x));
+  libgb::arch::set_background_viewport_y(libgb::count_px(scroll_y));
+  libgb::copy_into_active_sprite_map(libgb::inactive_sprite_map);
+}
 
 int main() {
   libgb::enable_interrupts();
@@ -1002,61 +1053,5 @@ int main() {
 
   init_stars<scene_manager>();
 
-  // Main game loop
-  libgb::wait_for_interrupt<libgb::Interrupt::vblank>();
-  libgb::wait_for_interrupt<libgb::Interrupt::vblank>();
-  static uint8_t frame_count = 0;
-  while (1) {
-    libgb::read_inputs();
-    if (target_scroll_y != scroll_y) {
-      scroll_speed_y += libgb::Pixels{1};
-    } else {
-      scroll_speed_y = libgb::Pixels{0};
-    }
-
-    if (scroll_x == target_scroll_x) {
-      scroll_speed_x = libgb::Pixels{0};
-    } else if (scroll_x < target_scroll_x) {
-      scroll_speed_x = libgb::Pixels{1};
-    } else if (scroll_x > target_scroll_x) {
-      scroll_speed_x = -libgb::Pixels{1};
-    }
-
-    if (is_animating_refresh) {
-      handle_clear_board_animation();
-    } else if (is_level_finished) {
-      handle_level_pass_animation();
-    } else if (is_game_over) {
-      falling_piece.copy_position_into_underlying_sprite();
-    } else {
-      if (lines_left_to_clear == 0) {
-        handle_gameplay_updates();
-      } else {
-        handle_line_clear_animation();
-      }
-    }
-
-    scroll_y += scroll_speed_y;
-    scroll_x += scroll_speed_x;
-
-    (void)frame_count;
-    bool did_finish_animation = animate_stars<scene_manager>(frame_count);
-    if (did_finish_animation) {
-      if (is_level_finished) {
-        play_line_clear_sound(4);
-      }
-      falling_piece.set_underlying_sprite_color_index();
-      is_animating_refresh = true;
-    }
-
-    frame_count += 1;
-
-    // Commit to VRAM
-    libgb::wait_for_interrupt<libgb::Interrupt::vblank>();
-    copy_grid_into_vram_map_0(&current_grid.m_data);
-
-    libgb::arch::set_background_viewport_x(-count_px(scroll_x));
-    libgb::arch::set_background_viewport_y(libgb::count_px(scroll_y));
-    libgb::copy_into_active_sprite_map(libgb::inactive_sprite_map);
-  }
+  return libgb::gameloop::run(on_tick, on_vblank);
 }

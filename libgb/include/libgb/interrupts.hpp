@@ -139,6 +139,21 @@ template <Interrupt interrupt> inline auto disable_interrupt() -> void {
   }
 }
 
+template <Interrupt interrupt> inline auto is_interrupt_pending() -> bool {
+  switch (interrupt) {
+  case Interrupt::vblank:
+    return arch::get_interrupt_flag_vblank();
+  case Interrupt::lcd:
+    return arch::get_interrupt_flag_lcd();
+  case Interrupt::timer:
+    return arch::get_interrupt_flag_timer();
+  case Interrupt::serial:
+    return arch::get_interrupt_flag_serial();
+  case Interrupt::joypad:
+    return arch::get_interrupt_flag_joypad();
+  }
+}
+
 template <Interrupt interrupt> struct InterruptScope {
   explicit InterruptScope(InterruptCallback callback) {
     enable_interrupt<interrupt>(callback);
