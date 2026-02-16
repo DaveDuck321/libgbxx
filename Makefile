@@ -55,6 +55,7 @@ TEST_OBJECTS = \
 	$(TEST_BUILD_DIR)/print.o \
 	$(TEST_BUILD_DIR)/state_machine.o \
 	$(TEST_BUILD_DIR)/tile_allocation.o \
+	$(TEST_BUILD_DIR)/type_name.o \
 	$(TEST_BUILD_DIR)/vram_guard.o \
 
 TEST_ROMS = $(TEST_OBJECTS:.o=.gb)
