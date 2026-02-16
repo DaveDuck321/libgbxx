@@ -14,6 +14,6 @@
 namespace libgb {
 auto serial_write(char const *to_write) -> void;
 auto serial_write(StringView) -> void;
-auto serial_write(uint16_t) -> void;
+auto serial_write(uint16_t, bool prefix = true) -> void;
 auto serial_write_char(char) -> void;
 } // namespace libgb

@@ -36,8 +36,11 @@ auto libgb::serial_write(StringView to_write) -> void {
   }
 }
 
-auto libgb::serial_write(uint16_t to_write) -> void {
-  serial_write_char('$');
+auto libgb::serial_write(uint16_t to_write, bool prefix) -> void {
+  if (prefix) {
+    serial_write_char('$');
+  }
+
   write_nibble_as_hex(to_write >> 12U);
   write_nibble_as_hex((to_write >> 8U) & 0b1111U);
   write_nibble_as_hex((to_write >> 4U) & 0b1111U);

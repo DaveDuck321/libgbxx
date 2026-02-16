@@ -2,12 +2,13 @@
 
 #include <libgb/serial.hpp>
 #include <libgb/std/algorithms.hpp>
+#include <libgb/std/traits.hpp>
 
 namespace libgb {
 namespace impl {
 auto print_until_next_format_arg(char const *fmt) -> char const *;
 
-enum class FormatType { unspecified, escape };
+enum class FormatType { unspecified, escape, no_prefix };
 static constexpr char format_separator = '\0';
 
 template <size_t N, size_t AllocatedSpecifiers> struct FormatString {
@@ -22,6 +23,12 @@ template <size_t N, size_t AllocatedSpecifiers> struct FormatString {
     if (c_str[index] == '{') {
       return FormatType::escape;
     }
+    if (c_str[index] == '#') {
+      index += 1;
+      assert(c_str[index++] == '}');
+      return FormatType::no_prefix;
+    }
+
     assert(c_str[index++] == '}');
     return FormatType::unspecified;
   }
@@ -60,25 +67,39 @@ consteval auto shrink_wrap_format_string()
   return new_fmt;
 }
 
-template <typename... Args>
-inline auto unchecked_println(char const *fmt, Args... args) -> void {
-  auto print_next_section = [&] [[gnu::always_inline]] (auto arg) {
-    fmt = print_until_next_format_arg(fmt);
-    serial_write(arg);
-  };
-  (print_next_section(args), ...);
+template <auto format_types, typename... Args>
+inline auto unchecked_print(char const *fmt, Args... args) -> void {
+  auto print_next_section =
+      [&]<typename Arg> [[gnu::always_inline]] (size_t index, Arg arg) {
+        fmt = print_until_next_format_arg(fmt);
+        if constexpr (is_same<Arg, uint8_t> || is_same<Arg, uint16_t>) {
+          if (format_types[index] == FormatType::no_prefix) {
+            serial_write(arg, /*prefix=*/false);
+            return;
+          }
+        }
+        serial_write(arg);
+      };
+
+  size_t index = 0;
+  (print_next_section(index++, args), ...);
   print_until_next_format_arg(fmt);
-  serial_write_char('\n');
 }
 
 } // namespace impl
 
 template <impl::FormatString fmt, typename... Args>
-[[gnu::always_inline]] inline auto println(Args... args) -> void {
+[[gnu::always_inline]] inline auto print(Args... args) -> void {
   static constexpr auto fmt_string =
       impl::shrink_wrap_format_string<fmt>().m_data;
   static_assert(fmt.m_args == sizeof...(args),
                 "println arguments do not match format specifier");
-  impl::unchecked_println(fmt_string.data(), args...);
+  impl::unchecked_print<fmt.m_format_types>(fmt_string.data(), args...);
+}
+
+template <impl::FormatString fmt, typename... Args>
+[[gnu::always_inline]] inline auto println(Args... args) -> void {
+  print<fmt>(args...);
+  serial_write_char('\n');
 }
 } // namespace libgb

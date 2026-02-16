@@ -24,5 +24,8 @@ int main() {
   libgb::println<"test {{}{{{}}">(1);
   // CHECK: test {}{$0001}
 
+  libgb::println<"{#}">(0x2710);
+  // CHECK: 2710
+
   return 0;
 }
