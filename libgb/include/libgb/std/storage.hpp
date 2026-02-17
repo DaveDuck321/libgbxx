@@ -70,4 +70,48 @@ public:
   auto destruct() -> void { libgb::destroy_at(ptr()); }
 };
 
+template <auto Id, typename Stored> class Static {
+  static inline Stored s_stored;
+
+public:
+  static constexpr auto get() -> Stored * { return &s_stored; }
+
+  Static() = default;
+  Static(Static const &) = default;
+  Static(Static &&) = default;
+
+  constexpr auto operator=(Static const &) -> Static & = delete;
+  constexpr auto operator=(Static &&) -> Static & = delete;
+
+  constexpr auto operator->() -> Stored * { return &s_stored; }
+  constexpr auto operator->() const -> Stored const * { return &s_stored; }
+
+  constexpr auto operator*() -> Stored & { return s_stored; }
+  constexpr auto operator*() const -> Stored const & { return s_stored; }
+};
+
+template <typename Stored> using Singleton = Static<0, Stored>;
+
+// Interface matches singleton (or a bound Static)
+template <typename Stored> class Dynamic {
+  Stored m_stored;
+
+public:
+  constexpr auto get() -> Stored * { return &m_stored; }
+  constexpr auto get() const -> Stored const * { return &m_stored; }
+
+  Dynamic() = default;
+  Dynamic(Dynamic const &) = default;
+  Dynamic(Dynamic &&) = default;
+
+  constexpr auto operator=(Dynamic const &) -> Dynamic & = delete;
+  constexpr auto operator=(Dynamic &&) -> Dynamic & = delete;
+
+  constexpr auto operator->() -> Stored * { return &m_stored; }
+  constexpr auto operator->() const -> Stored const * { return &m_stored; }
+
+  constexpr auto operator*() -> Stored & { return m_stored; }
+  constexpr auto operator*() const -> Stored const & { return m_stored; }
+};
+
 } // namespace libgb

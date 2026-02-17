@@ -60,6 +60,21 @@ struct curry_t {
 template <typename T, typename List>
 concept is_contained = any<curry_t<is_same_t, T>::template Fn, List>;
 
+template <is_type_list List, typename Thing> struct find_index_t;
+template <template <typename...> typename List, typename Thing, typename T1,
+          typename... Others>
+struct find_index_t<List<T1, Others...>, Thing> {
+  static constexpr size_t value =
+      is_same<T1, Thing> ? 0 : 1 + find_index_t<List<Others...>, Thing>::value;
+};
+template <template <typename...> typename List, typename Thing>
+struct find_index_t<List<>, Thing> {
+  static constexpr size_t value = 0;
+};
+
+template <is_type_list List, typename Thing>
+static constexpr auto find_index = find_index_t<List, Thing>::value;
+
 template <is_type_list List> struct tail_t;
 template <template <typename...> typename List, typename T1, typename... Others>
 struct tail_t<List<T1, Others...>> {
