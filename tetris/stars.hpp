@@ -169,6 +169,8 @@ template <auto scene_manager> static auto init_stars() -> void {
   libgb::shuffle(star_show_order);
 }
 
+static auto is_animating_star_hiding() -> bool { return is_hiding_all_stars; }
+
 static auto hide_all_stars(bool is_fast) -> void {
   is_hiding_all_stars = true;
   additional_stars_to_show = 0;

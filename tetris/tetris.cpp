@@ -9,6 +9,7 @@
 #include <libgb/gameloop.hpp>
 #include <libgb/input.hpp>
 #include <libgb/interrupts.hpp>
+#include <libgb/state_machine.hpp>
 #include <libgb/std/array.hpp>
 #include <libgb/std/assert.hpp>
 #include <libgb/std/enum.hpp>
@@ -16,6 +17,7 @@
 #include <libgb/std/random.hpp>
 #include <libgb/std/ranges.hpp>
 #include <libgb/std/saturating_int.hpp>
+#include <libgb/std/storage.hpp>
 #include <libgb/tile_allocation.hpp>
 #include <libgb/tile_builder.hpp>
 #include <libgb/video.hpp>
@@ -23,6 +25,7 @@
 #include "piece_rotations.hpp"
 #include "shared.defs"
 #include "stars.hpp"
+#include "states.hpp"
 
 #include <stdint.h>
 
@@ -726,9 +729,6 @@ struct FallingPiece {
   }
 };
 
-static bool is_game_over = false;
-static bool is_level_finished = false;
-static bool is_animating_refresh = false;
 static FallingPiece falling_piece = {};
 
 static auto generate_falling_piece() -> void {
@@ -774,21 +774,10 @@ static auto generate_falling_piece() -> void {
   int8_t lower_y = libgb::count_as<libgb::Tiles>(board_height) - 2;
   falling_piece.m_position = {3, lower_y};
   falling_piece.m_rotation = 0;
-
-  // Are we dead?
-  if (not falling_piece.is_position_legal(falling_piece.m_position,
-                                          falling_piece.m_rotation)) {
-    is_game_over = true;
-    falling_piece.render_piece_as_dead();
-    play_game_over_sound();
-    hide_all_stars(false);
-  }
 }
 
-static uint8_t lines_left_to_clear = 0;
-static uint8_t current_level = 0;
-
-auto handle_gameplay_updates() -> void {
+template <typename StateMachine>
+auto GameplayUpdate::on_tick(StateMachine &sm) -> StateMachine::Token {
   static constexpr libgb::Array<uint8_t, 6> delay_between_shifts = {5, 2, 2,
                                                                     1, 1, 1};
 
@@ -911,7 +900,8 @@ auto handle_gameplay_updates() -> void {
     is_up_pressed = false;
   }
 
-  if (++frames_since_drop > frames_between_drop[current_level]) {
+  if (++frames_since_drop >
+      frames_between_drop[sm.get_storage().current_level]) {
     falling_piece.try_move_down();
     frames_since_drop = 0;
   }
@@ -927,67 +917,107 @@ auto handle_gameplay_updates() -> void {
       play_soft_drop_sound();
     }
     falling_piece.copy_into_current_grid();
-    lines_left_to_clear = current_grid.mark_rows_as_complete();
-    if (lines_left_to_clear == 0) {
-      generate_falling_piece();
-    } else {
-      play_line_clear_sound(lines_left_to_clear);
-      if (show_additional_stars<scene_manager>(2 * lines_left_to_clear)) {
-        is_level_finished = true;
-      }
-      falling_piece.hide_until_next_update();
-    }
+    uint8_t lines_left_to_clear = current_grid.mark_rows_as_complete();
     frames_since_drop = 0;
     piece_is_dropped = false;
+    if (lines_left_to_clear == 0) {
+      generate_falling_piece();
+      // Are we dead?
+      if (not falling_piece.is_position_legal(falling_piece.m_position,
+                                              falling_piece.m_rotation)) {
+        falling_piece.render_piece_as_dead();
+        play_game_over_sound();
+        hide_all_stars(false);
+        return transition_to<HidingStars>(sm, ResetType::game_over);
+      }
+    } else {
+      play_line_clear_sound(lines_left_to_clear);
+      falling_piece.hide_until_next_update();
+
+      if (show_additional_stars<scene_manager>(2 * lines_left_to_clear)) {
+        return transition_to<LevelClear>(sm);
+      } else {
+        return transition_to<LineClear>(sm, lines_left_to_clear);
+      }
+    }
   }
+
+  return remain(sm);
 }
 
-auto handle_line_clear_animation() -> void {
-  static uint8_t line_clear_animation_frame = 0;
-
-  if (line_clear_animation_frame == 4) {
+template <typename StateMachine>
+auto LineClear::on_tick(StateMachine &sm) -> StateMachine::Token {
+  if (m_animation_frame == 4) {
     current_grid.delete_cleared_rows();
     generate_falling_piece();
     falling_piece.update_hard_drop_positions();
-    lines_left_to_clear = 0;
-    line_clear_animation_frame = 0;
+    return transition_to<GameplayUpdate>(sm);
   }
 
-  line_clear_animation_frame += 1;
+  m_animation_frame += 1;
+  return remain(sm);
 }
 
-auto handle_level_pass_animation() -> void {
-  static uint8_t current_row = 0;
-  if (current_row < libgb::count_as<libgb::Tiles>(board_height)) {
-    current_grid.fill_row(current_row++);
-    if (current_row == libgb::count_as<libgb::Tiles>(board_height)) {
-      current_row = 0;
+template <typename StateMachine>
+auto LevelClear::on_tick(StateMachine &sm) -> StateMachine::Token {
+  if (m_current_row < libgb::count_as<libgb::Tiles>(board_height)) {
+    current_grid.fill_row(m_current_row++);
+    if (m_current_row == libgb::count_as<libgb::Tiles>(board_height)) {
       hide_all_stars(true);
+      return transition_to<HidingStars>(sm, ResetType::level_clear);
     }
   }
+  return remain(sm);
 }
 
-auto handle_clear_board_animation() -> void {
-  static uint8_t current_row = libgb::count_as<libgb::Tiles>(board_height) - 1;
-  if (current_row != 255) {
-    current_grid.clear_row(current_row--);
-    return;
+BoardReset::BoardReset(ResetType type)
+    : m_type{type},
+      m_current_row{libgb::count_as<libgb::Tiles>(board_height) - 1} {}
+
+template <typename StateMachine>
+auto BoardReset::on_tick(StateMachine &sm) -> StateMachine::Token {
+  if (m_current_row != 255) {
+    current_grid.clear_row(m_current_row--);
+    return remain(sm);
   }
 
-  is_animating_refresh = false;
-  if (is_level_finished) {
-    current_level += 1;
-    is_level_finished = false;
+  if (m_type == ResetType::level_clear) {
+    sm.get_storage().current_level += 1;
     current_grid.delete_cleared_rows();
   }
-  if (is_game_over) {
-    current_level = 0;
-    is_game_over = false;
+  if (m_type == ResetType::game_over) {
+    sm.get_storage().current_level = 0;
   }
-  current_row = libgb::count_as<libgb::Tiles>(board_height) - 1;
   init_stars<scene_manager>();
+  return transition_to<GameplayUpdate>(sm);
+}
+
+template <typename Storage> auto BoardReset::on_entry(Storage &) -> void {
+  falling_piece.hide_until_next_update();
+}
+
+template <typename Storage> auto BoardReset::on_exit(Storage &) -> void {
+  falling_piece.set_underlying_sprite_color_index();
+  generate_falling_piece();
+}
+
+template <typename StateMachine>
+auto HidingStars::on_tick(StateMachine &sm) -> StateMachine::Token {
+  if (is_animating_star_hiding()) {
+    return remain(sm);
+  }
+
+  if (m_type == ResetType::level_clear) {
+    play_line_clear_sound(4);
+  }
+
+  // Animation finished
+  return transition_to<BoardReset>(sm, m_type);
 }
 } // namespace
+
+static libgb::StateMachineSingleton<BoardReset, GameplayStorage> gameplay_state{
+    {}, ResetType::game_over};
 
 void on_tick() {
   if (target_scroll_y != scroll_y) {
@@ -1004,32 +1034,12 @@ void on_tick() {
     scroll_speed_x = -libgb::Pixels{1};
   }
 
-  if (is_animating_refresh) {
-    handle_clear_board_animation();
-  } else if (is_level_finished) {
-    handle_level_pass_animation();
-  } else if (is_game_over) {
-    falling_piece.copy_position_into_underlying_sprite();
-  } else {
-    if (lines_left_to_clear == 0) {
-      handle_gameplay_updates();
-    } else {
-      handle_line_clear_animation();
-    }
-  }
+  gameplay_state.do_tick();
 
   scroll_y += scroll_speed_y;
   scroll_x += scroll_speed_x;
 
-  bool did_finish_animation =
-      animate_stars<scene_manager>(libgb::gameloop::tick_count());
-  if (did_finish_animation) {
-    if (is_level_finished) {
-      play_line_clear_sound(4);
-    }
-    falling_piece.set_underlying_sprite_color_index();
-    is_animating_refresh = true;
-  }
+  animate_stars<scene_manager>(libgb::gameloop::tick_count());
 }
 
 void on_vblank() {
@@ -1042,14 +1052,14 @@ void on_vblank() {
 
 int main() {
   libgb::enable_interrupts();
+  gameplay_state.dump();
+
   setup_lcd_controller();
   libgb::clear_sprite_map(libgb::inactive_sprite_map);
   libgb::copy_into_active_sprite_map(libgb::inactive_sprite_map);
   setup_scene(libgb::ScopedVRAMGuard{});
   setup_audio();
   play_line_clear_sound(4);
-  falling_piece.set_underlying_sprite_color_index();
-  generate_falling_piece();
 
   init_stars<scene_manager>();
 
